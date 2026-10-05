@@ -15,7 +15,7 @@ Application du maître du culte pour les paroisses de l'Église Bon Nouveau Mess
 
 Chaque téléphone doit être approuvé par l'administration. Un téléphone non approuvé reste bloqué, même si on lui donne le nom d'une paroisse déjà active.
 
-1. Le maître du culte installe l'application, choisit sa paroisse et indique son nom. L'application affiche « En attente d'activation » avec l'identifiant du téléphone (ex. `A7K2-9QX4`) et envoie la demande sur WhatsApp au numéro de `config.json`.
+1. Le maître du culte installe l'application, choisit sa paroisse et indique son nom. L'application affiche « En attente d'activation » avec l'identifiant du téléphone (ex. `A7K2-9QX4`) et envoie la demande sur WhatsApp au numéro `demandes` de `config.json`.
 2. L'administrateur approuve le téléphone :
    - en transférant la demande à Claude dans le projet ;
    - ou avec `python3 tools/approuver.py "Paroisse de Pika" A7K2-9QX4 --ville Kikwit` ;
@@ -28,11 +28,14 @@ Sur place, l'administrateur peut aussi activer un téléphone avec son mot de pa
 
 `config.json` ne contient pas les identifiants eux-mêmes, seulement leur empreinte. Avec `"activation": false`, l'application s'ouvre sans approbation.
 
-## Changer le numéro ou l'e-mail de réception
+## Numéro qui reçoit les rapports
 
-Modifiez `config.json` directement sur GitHub (icône crayon), puis « Commit changes ». Toutes les applications le lisent au démarrage. Un champ laissé vide garde la valeur saisie dans l'espace administrateur du téléphone.
+Par ordre de priorité :
+1. le `whatsapp` / `email` d'une paroisse dans `config.json` (`python3 tools/approuver.py "Paroisse de Pika" --whatsapp "+243 …"`) ;
+2. le `whatsapp` / `email` commun en haut de `config.json` ;
+3. sinon, le numéro saisi par l'administrateur dans l'espace administrateur du téléphone.
 
-Le dépôt doit être **public** pour que les téléphones puissent lire ce fichier.
+`demandes` est seulement le numéro qui reçoit les demandes d'activation.
 
 ## Télécharger l'APK Android
 

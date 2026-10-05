@@ -837,7 +837,7 @@ $('#acAsk').onclick=()=>{
 function requestText(){const D=store.get('demande',{})||{};
  return `Demande d'activation · Maître du Culte\nParoisse : ${D.par||''}\nVille : ${D.ville||''}\nMaître du culte : ${D.maitre||''}\nTéléphone : ${devId()}`}
 async function sendRequest(){
- const txt=requestText();const wa=(dest().wa||'').replace(/\D/g,'');
+ const txt=requestText();const wa=(central().demandes||dest().wa||'').replace(/\D/g,'');
  if(wa){location.href=`https://wa.me/${wa}?text=${encodeURIComponent(txt)}`;return}
  try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){}
  try{await navigator.clipboard.writeText(txt);toast('Demande copiée : envoyez-la à l\'administration')}catch(e){toast('Envoyez à l\'administration l\'identifiant affiché')}
@@ -864,7 +864,7 @@ function unlock(D,admin){
 }
 
 /* ---------- Administration : paroisses et téléphones ---------- */
-function cfgText(c){return JSON.stringify({whatsapp:c.wa||'',email:c.mail||'',cc:c.cc||'',activation:!!c.activation,paroisses:c.paroisses||[]},null,2)}
+function cfgText(c){return JSON.stringify({demandes:c.demandes||'',whatsapp:c.wa||'',email:c.mail||'',cc:c.cc||'',activation:!!c.activation,paroisses:c.paroisses||[]},null,2)}
 function parsSheet(){
  openSheet('Paroisses et téléphones',`<p class="note" style="margin-top:0">Ce téléphone : <b class="num">${esc(devId())}</b> · Activation ${gateOn()?'<b>obligatoire</b>':'désactivée'}</p>
   <div id="parsList"></div>
@@ -1016,7 +1016,10 @@ function openSend(rep){
 $('#btnSend').onclick=()=>openSend(R);
 
 /* ---------- Configuration centrale (commune à toutes les paroisses) ---------- */
-function dest(){const c=store.get('central',null);return {wa:(c&&c.wa)||S.wa||'',mail:(c&&c.mail)||S.mail||'',cc:(c&&c.cc)||S.cc||'',central:!!(c&&(c.wa||c.mail))}}
+/* Destinataires des rapports : réglage de la paroisse dans config.json, sinon réglage commun, sinon celui de l'espace administrateur du téléphone. */
+function dest(){const c=store.get('central',null)||{};const e=(Array.isArray(c.paroisses)&&S.paroisse&&c.paroisses.find(p=>String(p.nom||'').trim().toLowerCase()===S.paroisse.trim().toLowerCase()))||{};
+ const wa=e.whatsapp||c.wa||'',mail=e.email||c.mail||'';
+ return {wa:wa||S.wa||'',mail:mail||S.mail||'',cc:e.cc||c.cc||S.cc||'',central:!!(wa||mail)}}
 function cfgState(){const c=store.get('central',null);const el=$('#cfgState');if(!el)return;
  if(!S.cfgUrl){el.textContent="Sans configuration centrale, le numéro et l'e-mail ci-dessus valent pour ce téléphone seulement.";return}
  el.textContent=c&&c.at?`Configuration centrale lue le ${new Date(c.at).toLocaleString('fr-FR')}. Elle remplace les valeurs de ce téléphone pour toutes les paroisses.`:"Configuration centrale pas encore lue (connexion Internet nécessaire)."}
@@ -1026,7 +1029,7 @@ async function loadCentral(manual){
  try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
   const r=await fetch(S.cfgUrl+(S.cfgUrl.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store',signal:ctl.signal});clearTimeout(t);
   if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
-  const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',activation:!!j.activation,paroisses:Array.isArray(j.paroisses)?j.paroisses:[],at:Date.now()};store.set('central',c);loadCentral.ok=true;
+  const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',demandes:j.demandes||'',activation:!!j.activation,paroisses:Array.isArray(j.paroisses)?j.paroisses:[],at:Date.now()};store.set('central',c);loadCentral.ok=true;
   if(manual)toast('Destinataires mis à jour : '+[c.wa,c.mail].filter(Boolean).join(' · '));
  }catch(e){if(manual)toast("Configuration centrale injoignable. Les derniers destinataires connus restent utilisés.")}
  if(curTab==='reglages')renderSettings();

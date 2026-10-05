@@ -4,6 +4,7 @@
   python3 tools/approuver.py "Paroisse de Pika" A7K2-9QX4 [--ville Kikwit]
   python3 tools/approuver.py "Paroisse de Pika" A7K2-9QX4 --retirer
   python3 tools/approuver.py "Paroisse de Pika" --suspendre | --reactiver
+  python3 tools/approuver.py "Paroisse de Pika" --whatsapp "+243 8.."
   python3 tools/approuver.py --liste
 """
 import argparse, hashlib, json, os, re, sys
@@ -21,6 +22,7 @@ def main():
     ap.add_argument('paroisse', nargs='?')
     ap.add_argument('telephone', nargs='?')
     ap.add_argument('--ville', default='')
+    ap.add_argument('--whatsapp', help='numéro qui reçoit les rapports de cette paroisse')
     ap.add_argument('--retirer', action='store_true')
     ap.add_argument('--suspendre', action='store_true')
     ap.add_argument('--reactiver', action='store_true')
@@ -40,7 +42,11 @@ def main():
         sys.exit('Indiquez la paroisse.')
     e = next((p for p in ps if same(p['nom'], a.paroisse)), None)
 
-    if a.suspendre or a.reactiver:
+    if a.whatsapp and not a.telephone:
+        if not e:
+            sys.exit('Paroisse introuvable.')
+        e['whatsapp'] = a.whatsapp.strip()
+    elif a.suspendre or a.reactiver:
         if not e:
             sys.exit('Paroisse introuvable.')
         e['actif'] = bool(a.reactiver)
@@ -64,7 +70,7 @@ def main():
                 e['tel'].append(h)
             c['activation'] = True
 
-    order = ['whatsapp', 'email', 'cc', 'activation', 'paroisses']
+    order = ['demandes', 'whatsapp', 'email', 'cc', 'activation', 'paroisses']
     out = {k: c[k] for k in order if k in c}
     out.update({k: v for k, v in c.items() if k not in out})
     open(CFG, 'w', encoding='utf-8').write(json.dumps(out, indent=2, ensure_ascii=False) + '\n')
