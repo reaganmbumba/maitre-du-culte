@@ -24,6 +24,7 @@
   --accent:#8fb4f0; --accent-ink:#0b1424; --accent-soft:#1d2c47; --gold:#e6b65a; --gold-soft:#332914;
   --ok:#6fd39c; --ok-soft:#14321f; --warn:#f2b35a; --warn-soft:#38270f; --bad:#ff8a80; --bad-soft:#3a1717; color-scheme:dark}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:16px;line-height:1.4;overscroll-behavior-y:none}
 button{font-family:var(--ui);-webkit-user-select:none;user-select:none;touch-action:manipulation}
@@ -196,10 +197,20 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 </head>
 <body>
 <div class="splash" id="splash"><span id="splashLogo"></span><div class="nm">Maître du Culte</div><div class="eg">Eglise Bon Nouveau Message (KCC)</div></div>
+<div class="setup" id="access" hidden><div class="in">
+  <span id="accLogo"></span>
+  <h2>Accès de la paroisse</h2>
+  <p class="lead">Choisissez votre paroisse, puis saisissez le code d'accès remis par l'administration.</p>
+  <label class="lbl" for="acSel">Paroisse *</label><select class="input" id="acSel"></select>
+  <label class="lbl" for="acCode">Code d'accès *</label><input class="input" id="acCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex. KCC-4F7A2B1C">
+  <p class="note" id="acErr" style="color:var(--bad);min-height:1.2em"></p>
+  <div class="btns"><button class="btn" id="acGo">Activer</button></div>
+  <p class="note" id="acState" style="text-align:center">Le code n'est demandé qu'une seule fois sur ce téléphone.</p>
+</div></div>
 <div class="setup" id="setup" hidden><div class="in">
   <span id="setupLogo"></span>
   <h2>Bienvenue</h2>
-  <p class="lead">Avant de commencer, indiquez votre paroisse. Elle figurera sur tous vos rapports.</p>
+  <p class="lead" id="setupLead">Avant de commencer, indiquez votre paroisse. Elle figurera sur tous vos rapports.</p>
   <label class="lbl" for="suParoisse">Nom de la paroisse *</label><input class="input" id="suParoisse" placeholder="Ex. Paroisse de Pika – Pende" autocomplete="off">
   <label class="lbl" for="suVille">Ville</label><input class="input" id="suVille" placeholder="Ex. Muanda">
   <label class="lbl" for="suMaitre">Votre nom (maître du culte)</label><input class="input" id="suMaitre" placeholder="Nom complet">
@@ -338,6 +349,8 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 
     <div class="sec-title">Programme · temps prévus (min)</div>
     <div class="card list" id="progEdit"></div>
+    <div class="sec-title">Paroisses et codes d'accès</div>
+    <div class="card list"><button class="rowi" id="btnPars"><span class="ic">⛪</span><span class="main"><span class="t">Gérer les paroisses</span><span class="s" id="parsSub">Codes d'accès et fichier à publier</span></span><span class="chev">›</span></button></div>
     <div class="sec-title">Sécurité</div>
     <div class="card list"><button class="rowi" id="btnPin"><span class="ic">#</span><span class="main"><span class="t">Changer le mot de passe administrateur</span><span class="s">Pour ce téléphone</span></span><span class="chev">›</span></button><button class="rowi" id="btnLock"><span class="ic">🔒</span><span class="main"><span class="t">Fermer l'espace administrateur</span></span></button></div>
     </div>
@@ -775,6 +788,93 @@ $('#btnAdmin').onclick=()=>{if(adminOpen){setAdmin(false);return}pwSheet('Espace
 $('#btnLock').onclick=()=>{setAdmin(false);window.scrollTo(0,0);toast('Espace administrateur fermé')};
 $('#btnPin').onclick=()=>pwSheet('Changer le mot de passe','Au moins 8 caractères.',['Nouveau mot de passe','Confirmer le mot de passe'],async([a,b])=>{a=a.trim();if(a.length<8)return 'Au moins 8 caractères';if(a!==b.trim())return 'Les deux mots de passe sont différents';store.set('adminHash',await hashPw(a));closeSheet();toast('Mot de passe administrateur changé')});
 
+/* ---------- Accès par paroisse ----------
+   Chaque paroisse reçoit un code. Le fichier publié ne contient que l'empreinte du code
+   (PBKDF2, 150 000 tours) : le code lui-même ne circule jamais sur Internet. */
+const CODE_ROUNDS=150000;
+async function hashCode(nom,code){
+ const enc=new TextEncoder();
+ const k=await crypto.subtle.importKey('raw',enc.encode(String(code).trim().toUpperCase()),'PBKDF2',false,['deriveBits']);
+ const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode('mdc-par:'+String(nom).trim().toLowerCase()),iterations:CODE_ROUNDS,hash:'SHA-256'},k,256);
+ return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function newCode(){return 'KCC-'+[...crypto.getRandomValues(new Uint8Array(4))].map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join('')}
+function parList(){const c=store.get('central',null);return (c&&Array.isArray(c.paroisses))?c.paroisses:[]}
+function acces(){return store.get('acces',null)}
+
+function showAccess(msg){
+ const L=parList();
+ $('#accLogo').innerHTML=logoSVG();
+ $('#acSel').innerHTML='<option value="">— Choisissez votre paroisse —</option>'+L.filter(p=>p.actif!==false)
+   .map(p=>`<option value="${esc(p.nom)}">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}</option>`).join('');
+ $('#acErr').textContent=msg||'';
+ $('#access').hidden=false;
+}
+$('#acGo').onclick=async()=>{
+ const nom=$('#acSel').value, code=$('#acCode').value.trim();
+ if(!nom){$('#acErr').textContent='Choisissez votre paroisse.';return}
+ if(!code){$('#acErr').textContent="Saisissez le code d'accès.";return}
+ const e=parList().find(p=>p.nom===nom);
+ if(!e){$('#acErr').textContent='Paroisse introuvable. Actualisez la liste.';return}
+ const btn=$('#acGo');btn.disabled=true;const lab=btn.textContent;btn.textContent='Vérification…';
+ let h='';try{h=await hashCode(nom,code)}catch(err){}
+ btn.disabled=false;btn.textContent=lab;
+ if(h!==e.h){$('#acErr').textContent="Code d'accès incorrect.";buzz();return}
+ store.set('acces',{par:nom,h:h,at:Date.now()});
+ S.paroisse=nom;if(e.ville)S.ville=e.ville;saveS();
+ $('#access').hidden=true;
+ if(needSetup2())showSetup();else{renderHead();showTab('accueil');toast('Bienvenue, '+nom)}
+};
+
+/* ---------- Administration des paroisses ---------- */
+function pars(){return store.get('pars',[])}
+function savePars(v){store.set('pars',v);if($('#parsSub'))$('#parsSub').textContent=v.length?v.length+' paroisse'+(v.length>1?'s':'')+" · fichier à publier":"Codes d'accès et fichier à publier"}
+async function cfgJSON(){
+ const out=[];for(const p of pars())out.push({nom:p.nom,ville:p.ville||'',actif:p.actif!==false,h:await hashCode(p.nom,p.code)});
+ return JSON.stringify({whatsapp:S.wa||'',email:S.mail||'',cc:S.cc||'',paroisses:out},null,2);
+}
+function parsSheet(){
+ openSheet('Paroisses et codes',`<div id="parsList"></div>
+  <div class="sec-title">Ajouter une paroisse</div>
+  <div class="card list">
+   <div class="field"><label for="npNom">Paroisse</label><input id="npNom" placeholder="Ex. Paroisse de Pika"></div>
+   <div class="field"><label for="npVille">Ville</label><input id="npVille" placeholder="Ex. Muanda"></div>
+   <div class="field"><label for="npCode">Code</label><input id="npCode" autocapitalize="characters" spellcheck="false"></div>
+  </div>
+  <p class="note" id="npErr" style="color:var(--bad);min-height:1.2em"></p>
+  <div class="btns two"><button class="btn sec" id="npGen">Nouveau code</button><button class="btn" id="npAdd">Ajouter</button></div>
+  <div class="sec-title">Fichier à publier</div>
+  <p class="note">Touchez « Générer », copiez le texte, puis collez-le dans <b>config.json</b> sur GitHub. Le code lui-même n'y figure pas.</p>
+  <textarea class="input" id="parsOut" style="font-family:monospace;font-size:12px" placeholder="Touchez « Générer »"></textarea>
+  <div class="btns"><button class="btn sec" id="parsGen">Générer le fichier</button></div>`,()=>{
+  const paint=()=>{
+   const L=pars();
+   $('#parsList').innerHTML=L.length?'<div class="card list">'+L.map((p,i)=>`<div class="field"><label style="font-size:.95rem">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}<br><span class="note" style="margin:0">Code : <b>${esc(p.code)}</b>${p.actif===false?' · désactivée':''}</span></label><span style="display:flex;gap:6px"><button class="btn sec" data-pt="${i}" style="padding:6px 10px">${p.actif===false?'Activer':'Suspendre'}</button><button class="btn sec" data-pd="${i}" style="padding:6px 10px">Retirer</button></span></div>`).join('')+'</div>':'<p class="note">Aucune paroisse pour le moment.</p>';
+   $$('[data-pt]').forEach(b=>b.onclick=()=>{const L=pars();L[+b.dataset.pt].actif=L[+b.dataset.pt].actif===false;savePars(L);paint()});
+   $$('[data-pd]').forEach(b=>b.onclick=function(){confirmBtn(this,'Confirmer',()=>{const L=pars();L.splice(+b.dataset.pd,1);savePars(L);paint()})});
+  };
+  paint();
+  $('#npCode').value=newCode();
+  $('#npGen').onclick=()=>{$('#npCode').value=newCode()};
+  $('#npAdd').onclick=()=>{
+   const nom=$('#npNom').value.trim(),code=$('#npCode').value.trim();
+   if(nom.length<3){$('#npErr').textContent='Indiquez le nom de la paroisse.';return}
+   if(code.length<6){$('#npErr').textContent='Le code doit avoir au moins 6 caractères.';return}
+   const L=pars();
+   if(L.some(p=>p.nom.toLowerCase()===nom.toLowerCase())){$('#npErr').textContent='Cette paroisse est déjà dans la liste.';return}
+   L.push({nom:nom,ville:$('#npVille').value.trim(),code:code,actif:true});savePars(L);
+   $('#npErr').textContent='';$('#npNom').value='';$('#npVille').value='';$('#npCode').value=newCode();
+   paint();toast('Paroisse ajoutée');
+  };
+  $('#parsGen').onclick=async()=>{
+   const b=$('#parsGen');b.disabled=true;b.textContent='Calcul…';
+   try{$('#parsOut').value=await cfgJSON();$('#parsOut').select();toast('Copiez le texte, puis collez-le dans config.json')}
+   catch(e){toast('Génération impossible')}
+   b.disabled=false;b.textContent='Générer le fichier';
+  };
+ })}
+$('#btnPars').onclick=parsSheet;
+
 /* ---------- Rapport PDF ---------- */
 const GOLD=[184,134,11],NAVY=[28,74,138],INK=[20,28,44],GREY=[102,112,133];
 function dateLongue(s){if(!s)return '';const [y,m,d]=s.split('-').map(Number);const dt=new Date(y,m-1,d);const j=JOURS[dt.getDay()];const mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];return `${j[0].toUpperCase()+j.slice(1)} ${d} ${mois[m-1]} ${y}`}
@@ -903,7 +1003,7 @@ async function loadCentral(manual){
  try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
   const r=await fetch(S.cfgUrl+(S.cfgUrl.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store',signal:ctl.signal});clearTimeout(t);
   if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
-  const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',at:Date.now()};store.set('central',c);
+  const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',paroisses:Array.isArray(j.paroisses)?j.paroisses:[],at:Date.now()};store.set('central',c);
   if(manual)toast('Destinataires mis à jour : '+[c.wa,c.mail].filter(Boolean).join(' · '));
  }catch(e){if(manual)toast("Configuration centrale injoignable. Les derniers destinataires connus restent utilisés.")}
  if(curTab==='reglages')renderSettings();
@@ -912,13 +1012,27 @@ $('#btnCfg').onclick=()=>loadCentral(true);
 
 /* ---------- Premier lancement ---------- */
 function needSetup(){return !S.paroisse}
-function showSetup(){$('#setupLogo').innerHTML=logoSVG();$('#suJour').value=S.jour;$('#suHeure').value=S.heure;$('#suMaitre').value=S.maitre||'';$('#setup').hidden=false}
+function needSetup2(){return !S.maitre}
+function showSetup(){$('#setupLogo').innerHTML=logoSVG();$('#suJour').value=S.jour;$('#suHeure').value=S.heure;$('#suMaitre').value=S.maitre||'';
+ const a=acces();const inp=$('#suParoisse');
+ if(a){inp.value=S.paroisse;inp.readOnly=true;$('#suVille').value=S.ville||'';$('#setupLead').textContent='Votre paroisse est activée. Complétez votre nom et l\'horaire du culte.'}
+ $('#setup').hidden=false}
 $('#suGo').onclick=()=>{const par=$('#suParoisse').value.trim();if(par.length<3){$('#suErr').textContent='Indiquez le nom de votre paroisse.';$('#suParoisse').focus();return}
  S.paroisse=par;S.ville=$('#suVille').value.trim();S.maitre=$('#suMaitre').value.trim();S.jour=$('#suJour').value;S.heure=$('#suHeure').value||'09:00';saveS();
  R.faitA=R.faitA||S.ville;R.maitre=R.maitre||S.maitre;saveDraft();
  $('#setup').hidden=true;renderHead();bindReport();showTab('accueil');toast('Bienvenue, '+S.paroisse)};
-if(needSetup())showSetup();
-loadCentral(false);
+/* Contrôle d'accès : si l'administration a publié une liste de paroisses,
+   l'application ne s'ouvre qu'avec le code de la paroisse. Sans liste publiée,
+   l'ancien premier lancement reste en place. */
+(async()=>{
+ await loadCentral(false);
+ const L=parList();let A=acces();
+ if(A&&L.length){const e=L.find(p=>p.nom===A.par);
+  if(!e||e.actif===false||e.h!==A.h){store.set('acces',null);A=null;
+   showAccess(e&&e.actif===false?"L'accès de cette paroisse a été suspendu par l'administration.":"Le code de votre paroisse a changé. Saisissez le nouveau code.");return}}
+ if(!A&&L.length){showAccess();return}
+ if(needSetup())showSetup();
+})();
 
 /* ---------- Démarrage ---------- */
 renderHead();bindReport();

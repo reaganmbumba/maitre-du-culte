@@ -11,6 +11,19 @@ Application du maître du culte pour les paroisses de l'Église Bon Nouveau Mess
 | `source/` | Source de l'application (`app.src.html`), règlement intérieur (`reglement.json`), logo et bibliothèques PDF. |
 | `config.json` | Numéro WhatsApp et e-mail qui reçoivent les rapports de toutes les paroisses. |
 
+## Donner un accès à une paroisse
+
+Chaque paroisse a son propre code d'accès. Sans le bon code, l'application ne s'ouvre pas.
+
+1. Dans l'application, ouvrez **Réglages → Espace administrateur → Gérer les paroisses**.
+2. Ajoutez la paroisse. Un code est proposé ; communiquez-le au maître du culte.
+3. Touchez **Générer le fichier**, copiez le texte et collez-le dans `config.json` ici sur GitHub.
+4. Au premier lancement, le maître du culte choisit sa paroisse et saisit le code. Il ne lui est plus redemandé ensuite.
+
+Le fichier publié ne contient jamais le code lui-même, seulement son empreinte (PBKDF2, 150 000 tours).
+
+Pour retirer l'accès d'une paroisse, suspendez-la puis republiez le fichier : son application se bloque à la prochaine ouverture avec Internet. Tant que `paroisses` est vide, l'application fonctionne sans code.
+
 ## Changer le numéro ou l'e-mail de réception
 
 Modifiez `config.json` directement sur GitHub (icône crayon), puis « Commit changes ». Toutes les applications le lisent au démarrage. Un champ laissé vide garde la valeur saisie dans l'espace administrateur du téléphone.
