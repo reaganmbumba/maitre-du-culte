@@ -1,0 +1,12 @@
+node_modules/
+android/app/build/
+android/.gradle/
+android/build/
+ios/App/build/
+.DS_Store
+android/node_modules/
+ios/node_modules/
+android/android/app/build/
+android/android/.gradle/
+android/android/build/
+ios/ios/App/build/

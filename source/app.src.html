@@ -1,0 +1,921 @@
+<title>Maître du Culte</title>
+<style>
+/* Layout: native-style phone app. App bar on top, one screen at a time, bottom tab bar, bottom sheets for editing, full-screen live mode for the service. */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --surface2:#f6f8fb; --ink:#141c2c; --muted:#667085; --line:#e3e7ee;
+  --accent:#1c4a8a; --accent-ink:#ffffff; --accent-soft:#e3ecf8; --gold:#a8730e; --gold-soft:#fbf1dc;
+  --ok:#1b7a48; --ok-soft:#e0f3e8; --warn:#a35f00; --warn-soft:#fdf0d8; --bad:#c0261c; --bad-soft:#fde5e3;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:Georgia,"Times New Roman",serif;
+  --tabh:64px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c111b; --surface:#161d2b; --surface2:#1c2435; --ink:#eaf0f8; --muted:#98a3b8; --line:#273145;
+  --accent:#8fb4f0; --accent-ink:#0b1424; --accent-soft:#1d2c47; --gold:#e6b65a; --gold-soft:#332914;
+  --ok:#6fd39c; --ok-soft:#14321f; --warn:#f2b35a; --warn-soft:#38270f; --bad:#ff8a80; --bad-soft:#3a1717; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c111b; --surface:#161d2b; --surface2:#1c2435; --ink:#eaf0f8; --muted:#98a3b8; --line:#273145;
+  --accent:#8fb4f0; --accent-ink:#0b1424; --accent-soft:#1d2c47; --gold:#e6b65a; --gold-soft:#332914;
+  --ok:#6fd39c; --ok-soft:#14321f; --warn:#f2b35a; --warn-soft:#38270f; --bad:#ff8a80; --bad-soft:#3a1717; color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:16px;line-height:1.4;overscroll-behavior-y:none}
+button{font-family:var(--ui);-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.num{font-variant-numeric:tabular-nums}
+.pre{white-space:pre-line}
+
+/* App bar */
+.appbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:10px 16px 8px;display:flex;align-items:flex-end;gap:10px;max-width:640px;margin:0 auto}
+.appbar h1{font-size:1.75rem;font-weight:800;margin:0;letter-spacing:-.02em;flex:1;min-width:0}
+.appbar .sub{font-size:.8rem;color:var(--muted);text-align:right;max-width:45%}
+main{padding:0 16px calc(var(--tabh) + 28px + env(safe-area-inset-bottom,0px));max-width:640px;margin:0 auto}
+
+/* Tab bar */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);display:flex;justify-content:space-around;padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabbar button{flex:1;position:relative;background:none;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:.68rem;font-weight:600;padding:4px 0;min-height:48px;cursor:pointer}
+.tabbar svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tabbar button[aria-selected="true"]{color:var(--accent)}
+.tabbar .badge{position:absolute;left:50%;margin-left:6px;top:0;background:var(--bad);color:#fff;border-radius:999px;font-size:.62rem;min-width:16px;height:16px;line-height:16px;padding:0 4px}
+
+/* Building blocks */
+.sec-title{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:20px 4px 8px;display:flex;align-items:center;gap:8px}
+.sec-title .count{background:var(--bad);color:#fff;border-radius:999px;padding:0 7px;font-size:.72rem;letter-spacing:0}
+.card{background:var(--surface);border-radius:16px;overflow:hidden}
+.list>*+*{border-top:1px solid var(--line)}
+.rowi{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:56px;width:100%;background:none;border:0;color:inherit;text-align:left;font-size:1rem;cursor:pointer}
+.rowi .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-weight:800;font-size:.85rem;flex:none;background:var(--accent-soft);color:var(--accent)}
+.rowi .main{flex:1;min-width:0;display:block}
+.rowi .t{display:block;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowi .s{display:block;font-size:.85rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowi .s2{font-size:.88rem;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chev{color:var(--muted);flex:none;font-size:1.3rem}
+.chip{font-size:.8rem;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap;flex:none}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.none{background:var(--surface2);color:var(--muted)}
+.field{display:flex;align-items:center;gap:10px;padding:8px 14px;min-height:52px}
+.field label{flex:1;font-size:1rem;min-width:0}
+.field input,.field select{width:auto;max-width:55%;text-align:right;border:0;background:transparent;color:var(--accent);font:600 16px var(--ui);padding:6px 0}
+.input{width:100%;font:400 16px var(--ui);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.sheet .input{background:var(--surface2)}
+textarea.input{min-height:110px;resize:vertical}
+.lbl{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin:14px 2px 6px}
+input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:52px;border-radius:14px;border:0;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:1.02rem;cursor:pointer}
+.btn.sec{background:var(--accent-soft);color:var(--accent)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn.gold{background:var(--gold);color:#1a1205}
+.btns{display:grid;gap:10px;margin-top:14px}
+.btns.two{grid-template-columns:1fr 1fr}
+.note{font-size:.85rem;color:var(--muted);margin:8px 4px}
+.seg{display:inline-flex;background:var(--surface2);border-radius:10px;padding:3px;flex:none}
+.seg button{border:0;background:transparent;color:var(--ink);padding:8px 14px;border-radius:8px;font-weight:600;font-size:.9rem;min-height:38px;cursor:pointer}
+.seg button.on-oui{background:var(--ok);color:#fff}
+.seg button.on-non{background:var(--bad);color:#fff}
+.stepper{display:flex;align-items:center;gap:6px;flex:none}
+.stepper button{width:44px;height:44px;border-radius:12px;border:0;background:var(--accent-soft);color:var(--accent);font-size:1.4rem;font-weight:700;cursor:pointer}
+.stepper input{width:56px;max-width:none;text-align:center;font:700 20px var(--ui);border:0;background:transparent;color:var(--ink);padding:0}
+.switch{position:relative;width:52px;height:32px;flex:none}
+.switch input{opacity:0;width:100%;height:100%;margin:0;position:absolute;cursor:pointer;max-width:none}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .2s;pointer-events:none}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:transform .2s}
+.switch input:checked+span{background:var(--ok)}
+.switch input:checked+span::after{transform:translateX(20px)}
+
+/* Accueil */
+.hero{background:var(--accent);color:var(--accent-ink);border-radius:20px;padding:18px;margin-top:6px}
+.hero .k{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;opacity:.8;font-weight:700}
+.hero .d{font-size:1.5rem;font-weight:800;margin:4px 0 2px;letter-spacing:-.01em}
+.hero .c{opacity:.85}
+.hero .btn{background:var(--accent-ink);color:var(--accent);margin-top:16px}
+.daily{background:var(--surface);border-radius:16px;padding:16px;border-left:5px solid var(--gold)}
+.daily .k{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--gold);font-weight:800}
+.daily .a{font-family:var(--serif);font-size:1.25rem;font-weight:700;margin:4px 0 6px}
+.daily .x{display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;white-space:pre-line}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:var(--surface);border-radius:16px;padding:12px;min-width:0}
+.stat .v{font-size:1.5rem;font-weight:800}
+.stat .l{font-size:.75rem;color:var(--muted)}
+
+/* Rappels */
+.rappel{border-radius:14px;padding:12px 14px;background:var(--warn-soft);white-space:pre-line;font-size:.95rem}
+.rappel.bad{background:var(--bad-soft)}
+.rappel+.rappel{margin-top:8px}
+.rappel .why{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--warn)}
+.rappel.bad .why{color:var(--bad)}
+.rappel b{display:block;margin:2px 0}
+.linkbtn{background:none;border:0;padding:6px 0 0;color:var(--accent);font-weight:700;font-size:.9rem;cursor:pointer}
+.anom{padding:12px 14px}
+.anom .m{font-weight:700;display:flex;gap:8px;align-items:flex-start}
+.anom .m::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--warn);margin-top:7px;flex:none}
+.anom.bad .m::before{background:var(--bad)}
+.anom .r{font-size:.9rem;color:var(--muted);margin-top:4px;white-space:pre-line}
+
+/* Règlement */
+.search{position:sticky;top:calc(env(safe-area-inset-top,0px) + 52px);z-index:4;background:var(--bg);padding:4px 0 8px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex:none;border:0;background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 14px;font-weight:600;font-size:.9rem;min-height:40px;cursor:pointer}
+.chips button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.chap-h{font-size:.78rem;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin:18px 4px 8px}
+mark{background:var(--gold-soft);color:inherit;border-radius:3px}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;z-index:30;background:rgba(5,10,20,.5);opacity:0;transition:opacity .2s}
+.scrim.on{opacity:1}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--surface);border-radius:22px 22px 0 0;max-height:92%;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s ease;max-width:640px;margin:0 auto}
+.sheet.on{transform:none}
+.sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 0;flex:none}
+.sheet .sh{display:flex;align-items:center;gap:10px;padding:10px 16px 6px;flex:none}
+.sheet .sh h2{flex:1;font-size:1.2rem;margin:0;min-width:0}
+.sheet .x{width:36px;height:36px;border-radius:50%;border:0;background:var(--surface2);color:var(--muted);font-size:1.1rem;cursor:pointer}
+.sheet .sb{overflow:auto;padding:4px 16px calc(20px + env(safe-area-inset-bottom,0px));-webkit-overflow-scrolling:touch}
+.art-body{font-family:var(--serif);font-size:1.08rem;line-height:1.55;white-space:pre-line}
+
+/* Live */
+.live{position:fixed;inset:0;z-index:40;background:#0f1a2e;color:#f3f6fb;display:flex;flex-direction:column;padding:calc(12px + env(safe-area-inset-top,0px)) 20px calc(16px + env(safe-area-inset-bottom,0px))}
+.live .top{display:flex;align-items:center;justify-content:space-between}
+.live .top button{background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:999px;padding:8px 14px;font-weight:600;min-height:40px;cursor:pointer}
+.live .prog{height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:14px 0 0;overflow:hidden}
+.live .prog i{display:block;height:100%;background:#e6b65a;transition:width .3s}
+.live .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;min-height:0}
+.ring{width:min(60vw,240px,34vh);height:min(60vw,240px,34vh);position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .tm{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(2.2rem,12vw,3.4rem);font-weight:800;font-variant-numeric:tabular-nums}
+.ring.over .tm{color:#ff9d94}
+.live .rn{font-size:1.45rem;font-weight:800;margin-top:10px}
+.live .rp{opacity:.75}
+.live .who{margin-top:8px;width:100%;max-width:420px;background:rgba(255,255,255,.1);border:0;color:#fff;border-radius:12px;padding:12px;font:16px var(--ui);text-align:center}
+.live .who::placeholder{color:rgba(255,255,255,.55)}
+.live .hint{background:rgba(230,182,90,.14);border-left:4px solid #e6b65a;border-radius:12px;padding:10px 12px;font-size:.9rem;text-align:left;width:100%;max-width:520px;margin:12px auto 0;max-height:7.5em;overflow:auto}
+.live .acts{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.live .acts button{min-height:60px;border-radius:16px;border:0;font-size:1.1rem;font-weight:800;cursor:pointer}
+.live .acts .end{background:rgba(255,255,255,.12);color:#fff}
+.live .acts .next{background:#e6b65a;color:#1a1205}
+
+.toast{position:fixed;left:16px;right:16px;bottom:calc(var(--tabh) + 16px + env(safe-area-inset-bottom,0px));z-index:50;background:#141c2c;color:#fff;padding:12px 16px;border-radius:14px;font-size:.95rem;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:600px;margin:0 auto}
+/* Premier lancement */
+.setup{position:fixed;inset:0;z-index:90;background:var(--bg);overflow:auto;padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px))}
+.setup .in{max-width:480px;margin:0 auto}
+.setup .logo{width:96px;height:96px;margin:8px auto 10px}
+.setup h2{text-align:center;font-size:1.6rem;margin:0}
+.setup p.lead{text-align:center;color:var(--muted);margin:6px 0 18px}
+.ro{color:var(--ink);font-weight:600;text-align:right;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Logo, splash, admin, envoi */
+.logo{display:block;flex:none}
+.appbar .logo{width:38px;height:38px;margin-bottom:2px}
+.splash{position:fixed;inset:0;z-index:100;background:#ffffff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s ease}
+.splash.out{opacity:0;pointer-events:none}
+.splash .logo{width:min(46vw,190px);height:min(46vw,190px)}
+.splash .nm{font:800 1.5rem var(--ui);color:#141c2c;letter-spacing:-.01em}
+.splash .eg{font:600 .78rem var(--ui);color:#a8730e;text-transform:uppercase;letter-spacing:.12em;text-align:center;padding:0 24px}
+.pin{display:flex;justify-content:center;gap:12px;margin:18px 0 8px}
+.pin span{width:16px;height:16px;border-radius:50%;border:2px solid var(--accent)}
+.pin span.f{background:var(--accent)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:12px auto 0}
+.pad button{height:62px;border-radius:16px;border:0;background:var(--surface2);color:var(--ink);font:700 1.5rem var(--ui);cursor:pointer}
+.docprev{background:#fff;color:#141c2c;border-radius:12px;border:1px solid var(--line);padding:16px;box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.docprev .hd{display:flex;gap:12px;align-items:center;border-bottom:2px solid #b8860b;padding-bottom:10px}
+.docprev .hd .logo{width:52px;height:52px}
+.docprev .hd b{display:block;font-size:.82rem}
+.docprev .hd span{font-size:.75rem;color:#1c4a8a}
+.docprev h3{text-align:center;letter-spacing:.18em;font-size:1rem;margin:12px 0 2px}
+.docprev .dt{text-align:center;font-size:.8rem;color:#667085}
+.docprev .kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;text-align:center}
+.docprev .kv div{background:#f7f1e2;border-radius:8px;padding:6px 4px;font-size:.72rem;color:#7a5508}
+.docprev .kv b{display:block;font-size:1rem;color:#141c2c}
+.docprev .an{margin-top:10px;font-size:.8rem;color:#a35f00}
+.dest{font-size:.85rem;opacity:.8;font-weight:500}
+@media (prefers-reduced-motion:reduce){.sheet,.scrim,.switch span,.switch span::after{transition:none}}
+</style>
+
+<div class="splash" id="splash"><span id="splashLogo"></span><div class="nm">Maître du Culte</div><div class="eg">Eglise Bon Nouveau Message (KCC)</div></div>
+<div class="setup" id="setup" hidden><div class="in">
+  <span id="setupLogo"></span>
+  <h2>Bienvenue</h2>
+  <p class="lead">Avant de commencer, indiquez votre paroisse. Elle figurera sur tous vos rapports.</p>
+  <label class="lbl" for="suParoisse">Nom de la paroisse *</label><input class="input" id="suParoisse" placeholder="Ex. Paroisse de Pika – Pende" autocomplete="off">
+  <label class="lbl" for="suVille">Ville</label><input class="input" id="suVille" placeholder="Ex. Muanda">
+  <label class="lbl" for="suMaitre">Votre nom (maître du culte)</label><input class="input" id="suMaitre" placeholder="Nom complet">
+  <div class="card list" style="margin-top:16px">
+   <div class="field"><label for="suJour">Jour du culte</label><select id="suJour"><option value="6">Samedi</option><option value="0">Dimanche</option><option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option><option value="4">Jeudi</option><option value="5">Vendredi</option></select></div>
+   <div class="field"><label for="suHeure">Heure du culte</label><input type="time" id="suHeure" value="09:00"></div>
+  </div>
+  <p class="note" id="suErr" style="color:var(--bad)"></p>
+  <div class="btns"><button class="btn" id="suGo">Commencer</button></div>
+  <p class="note" style="text-align:center">Le nom de la paroisse ne pourra ensuite être modifié que par l'administrateur.</p>
+</div></div>
+<div class="appbar"><span id="barLogo"></span><h1 id="screenTitle">Accueil</h1><div class="sub" id="hdrParoisse"></div></div>
+
+<main>
+  <!-- ACCUEIL -->
+  <section id="s-accueil">
+    <div class="hero">
+      <div class="k">Prochain culte</div>
+      <div class="d" id="heroDate"></div>
+      <div class="c" id="heroCount"></div>
+      <button class="btn" id="btnStart">▶ Démarrer le culte</button>
+    </div>
+    <div class="sec-title">Règle du jour</div>
+    <div class="daily" id="daily"></div>
+    <div class="sec-title">En bref</div>
+    <div class="stats">
+      <div class="stat"><div class="v num" id="stR">0</div><div class="l">rapports</div></div>
+      <div class="stat"><div class="v num" id="stA">0</div><div class="l">anomalies en cours</div></div>
+      <div class="stat"><div class="v num" id="stE">—</div><div class="l">effectif moyen</div></div>
+    </div>
+    <div class="sec-title">Rapport en cours</div>
+    <div class="card list"><button class="rowi" id="goDraft"><span class="ic">✎</span><span class="main"><span class="t" id="draftT"></span><span class="s" id="draftS"></span></span><span class="chev">›</span></button></div>
+  </section>
+
+  <!-- RAPPORT -->
+  <section id="s-rapport" hidden>
+    <div class="card list">
+      <div class="field"><label for="fDate">Date</label><input type="date" id="fDate"></div>
+      <div class="field"><label for="fDebut">Début</label><input type="time" id="fDebut"></div>
+      <div class="field"><label for="fFin">Fin</label><input type="time" id="fFin"></div>
+    </div>
+    <div class="btns"><button class="btn gold" id="btnChrono">▶ Mode culte en direct</button></div>
+
+    <div class="sec-title">Vérifications avant le culte</div>
+    <div class="card list" id="checks"></div>
+
+    <div class="sec-title">Déroulement <span id="totLine" style="font-weight:500;text-transform:none;letter-spacing:0"></span></div>
+    <div class="card list" id="rubriques"></div>
+
+    <div class="sec-title">Effectif · <span class="num" id="fTotal">0</span></div>
+    <div class="card list">
+      <div class="field"><label>Hommes</label><div class="stepper" data-eff="h"></div></div>
+      <div class="field"><label>Femmes</label><div class="stepper" data-eff="f"></div></div>
+      <div class="field"><label>Enfants</label><div class="stepper" data-eff="e"></div></div>
+    </div>
+
+    <div class="sec-title">Anomalies et règlement <span class="count" id="anCount" hidden></span></div>
+    <div class="card list" id="summary"></div>
+
+    <div class="sec-title">Synthèse</div>
+    <textarea class="input" id="fSynthese" placeholder="Résumé du culte, faits marquants, recommandations…"></textarea>
+    <div class="btns"><button class="btn sec" id="btnInsere">Ajouter les anomalies à la synthèse</button></div>
+
+    <div class="sec-title">Signature</div>
+    <div class="card list">
+      <div class="field"><label for="fFaitA">Fait à</label><input id="fFaitA"></div>
+      <div class="field"><label for="fMaitre">Maître du culte</label><input id="fMaitre" placeholder="Nom"></div>
+    </div>
+    <div class="btns">
+      <button class="btn" id="btnSend">Envoyer le rapport (PDF)</button>
+      <div class="btns two" style="margin-top:0"><button class="btn sec" id="btnSave">Enregistrer</button><button class="btn danger" id="btnNouveau">Nouveau</button></div>
+    </div>
+  </section>
+
+  <!-- REGLEMENT -->
+  <section id="s-reglement" hidden>
+    <div class="search">
+      <input class="input" id="ruleSearch" type="search" placeholder="Rechercher : prédication, offrandes, sabbat…">
+      <div class="chips" id="filters" style="margin-top:10px">
+        <button data-f="culte" aria-pressed="true">Pour le culte</button>
+        <button data-f="tout" aria-pressed="false">Tout (268)</button>
+        <button data-f="fav" aria-pressed="false">★ Favoris</button>
+        <button data-f="norme" aria-pressed="false">Normes paroisse</button>
+      </div>
+    </div>
+    <div id="rulesList"></div>
+    <p class="note" id="ruleNote">Règlement intérieur révisé de l'EBNM (Kinshasa, 20/12/2019), numérisé depuis le document scanné. Les mots coupés au bord des pages sont marqués […]. L'original fait foi.</p>
+  </section>
+
+  <!-- HISTORIQUE -->
+  <section id="s-historique" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="sec-title">Rapports enregistrés</div>
+    <div class="card list" id="histList"></div>
+  </section>
+
+  <!-- REGLAGES -->
+  <section id="s-reglages" hidden>
+    <div class="sec-title">Rappels</div>
+    <div class="card list">
+      <div class="field"><label for="sJour">Jour du culte</label><select id="sJour"><option value="6">Samedi</option><option value="0">Dimanche</option><option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option><option value="4">Jeudi</option><option value="5">Vendredi</option></select></div>
+      <div class="field"><label for="sHeure">Heure du culte</label><input type="time" id="sHeure"></div>
+      <div class="field"><label for="sDaily">Règle du jour à</label><input type="time" id="sDaily"></div>
+      <div class="field"><label for="sAvant">Rappel avant le culte (min)</label><input type="number" min="0" inputmode="numeric" id="sAvant"></div>
+      <div class="field"><label for="sNotif">Notifications</label><span class="switch"><input type="checkbox" id="sNotif"><span></span></span></div>
+    </div>
+    <p class="note" id="notifState"></p>
+
+    <div class="sec-title">Ma paroisse</div>
+    <div class="card list">
+      <div class="field"><label>Paroisse</label><span class="ro" id="roParoisse"></span></div>
+      <div class="field"><label>Ville</label><span class="ro" id="roVille"></span></div>
+      <div class="field"><label for="sMaitre">Maître du culte</label><input id="sMaitre" placeholder="Votre nom"></div>
+    </div>
+    <p class="note">Rapports envoyés à : <b id="roDest"></b></p>
+    <div class="sec-title">Administration</div>
+    <div class="card list"><button class="rowi" id="btnAdmin"><span class="ic" style="background:var(--gold-soft);color:var(--gold)">🔒</span><span class="main"><span class="t">Espace administrateur</span><span class="s" id="adminSub">WhatsApp, e-mail, paroisse, programme</span></span><span class="chev">›</span></button></div>
+    <div id="adminBox" hidden>
+    <div class="sec-title">Envoi des rapports</div>
+    <div class="card list">
+      <div class="field"><label for="aWa">Numéro WhatsApp</label><input id="aWa" type="tel" inputmode="tel" placeholder="+243 8…"></div>
+      <div class="field"><label for="aMail">E-mail</label><input id="aMail" type="email" inputmode="email" placeholder="paroisse@…"></div>
+      <div class="field"><label for="aCc">Copie (e-mail)</label><input id="aCc" type="email" inputmode="email" placeholder="facultatif"></div>
+    </div>
+    <p class="note" id="cfgState"></p>
+    <label class="lbl" for="aCfg">Configuration centrale (adresse du fichier)</label><input class="input" id="aCfg" type="url" inputmode="url" placeholder="https://…/config.json">
+    <div class="btns"><button class="btn sec" id="btnCfg">Actualiser depuis la configuration centrale</button></div>
+    <div class="sec-title">Paroisse</div>
+    <div class="card list">
+      <div class="field"><label for="sParoisse">Paroisse</label><input id="sParoisse"></div>
+      <div class="field"><label for="sVille">Ville</label><input id="sVille"></div>
+      <div class="field"><label for="sTol">Tolérance (min)</label><input type="number" min="0" inputmode="numeric" id="sTol"></div>
+    </div>
+    <label class="lbl" for="sEglise">Église (en-tête du rapport)</label><input class="input" id="sEglise">
+    <label class="lbl" for="sArrete">Référence légale</label><input class="input" id="sArrete">
+
+    <div class="sec-title">Programme · temps prévus (min)</div>
+    <div class="card list" id="progEdit"></div>
+    <div class="sec-title">Sécurité</div>
+    <div class="card list"><button class="rowi" id="btnPin"><span class="ic">#</span><span class="main"><span class="t">Changer le mot de passe administrateur</span><span class="s">Pour ce téléphone</span></span><span class="chev">›</span></button><button class="rowi" id="btnLock"><span class="ic">🔒</span><span class="main"><span class="t">Fermer l'espace administrateur</span></span></button></div>
+    </div>
+
+
+    <div class="sec-title">Sauvegarde</div>
+    <textarea class="input" id="backup" style="font-family:monospace;font-size:13px" placeholder="Touchez « Générer » puis copiez ce texte, ou collez ici une sauvegarde."></textarea>
+    <div class="btns two"><button class="btn sec" id="btnExport">Générer</button><button class="btn sec" id="btnImport">Restaurer</button></div>
+  </section>
+</main>
+
+<nav class="tabbar" role="tablist">
+  <button role="tab" data-tab="accueil" aria-selected="true"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Accueil</button>
+  <button role="tab" data-tab="rapport" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4h6v3H9z"/><path d="M9 12h6M9 16h4"/></svg><span class="badge" id="tabBadge" hidden></span>Rapport</button>
+  <button role="tab" data-tab="reglement" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 21V5"/><path d="M9 8h6"/></svg>Règlement</button>
+  <button role="tab" data-tab="historique" aria-selected="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Historique</button>
+  <button role="tab" data-tab="reglages" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>Réglages</button>
+</nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true"><div class="grab"></div><div class="sh"><h2 id="sheetTitle"></h2><button class="x" id="sheetX" aria-label="Fermer">✕</button></div><div class="sb" id="sheetBody"></div></div>
+
+<div class="live" id="live" hidden>
+  <div class="top"><button id="lvMin">⌄ Réduire</button><span id="lvStep" class="num" style="opacity:.8"></span></div>
+  <div class="prog"><i id="lvProg"></i></div>
+  <div class="center">
+    <div class="ring" id="lvRing"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" stroke="rgba(255,255,255,.12)" stroke-width="8" fill="none"/><circle id="lvArc" cx="60" cy="60" r="54" stroke="#e6b65a" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="339.3" stroke-dashoffset="339.3"/></svg><div class="tm" id="lvTime">00:00</div></div>
+    <div class="rn" id="lvName"></div>
+    <div class="rp" id="lvPrevu"></div>
+    <input class="who" id="lvWho" placeholder="Nom de l'intervenant">
+    <div class="hint pre" id="lvHint"></div>
+  </div>
+  <div class="acts"><button class="end" id="lvEnd">Terminer</button><button class="next" id="lvNext">Suivant ›</button></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<!--__PDFLIBS__-->
+<script>
+const REGLEMENT=/*__REGLEMENT__*/[];
+</script>
+<script>
+(function(){
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const store={get(k,d){try{const v=localStorage.getItem('mdc_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('mdc_'+k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,9);
+const ART={};REGLEMENT.forEach(a=>ART[a.n]=a);
+const NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
+const LN=NATIVE?window.Capacitor.Plugins.LocalNotifications:null;
+const JOURS=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+const MOIS=['janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
+
+/* Programme tiré du modèle papier de la paroisse */
+const PROGRAMME=[
+ {id:'r1',label:'Dirigeant',prevu:5,par:true},
+ {id:'r2',label:"Prière d'ouverture par",prevu:3,par:true},
+ {id:'r3',label:'Réception',prevu:5},
+ {id:'r4',label:'Lecture des correspondances',prevu:null},
+ {id:'r5',label:'Chorales',prevu:5},
+ {id:'r6',label:'Profession de foi',prevu:4},
+ {id:'r7',label:'Lecture biblique',prevu:5},
+ {id:'r8',label:'Serment du prophète par',prevu:3,par:true},
+ {id:'r9',label:'Prédication par',prevu:37,par:true},
+ {id:'r10',label:'Passage biblique',texte:true},
+ {id:'r11',label:'Idée générale',texte:true},
+ {id:'r12',label:"Prière d'action de grâce",prevu:2},
+ {id:'r13',label:'Chorales',prevu:5},
+ {id:'r14',label:'Offrandes et divers par',prevu:20,par:true},
+ {id:'r15',label:'Chorales',prevu:5},
+ {id:'r16',label:'Prière pour les offrandes',prevu:2},
+ {id:'r17',label:'Divers & bénédictions par',prevu:6,par:true},
+ {id:'r18',label:'Annonces par',prevu:10,par:true},
+ {id:'r19',label:'Bénédiction finale par',prevu:6,par:true}
+];
+/* Adresse du fichier de configuration centrale (numéro WhatsApp et e-mail communs à toutes les paroisses).
+   L'administration modifie ce fichier une seule fois ; chaque téléphone le relit à l'ouverture. */
+const CENTRAL_URL='https://raw.githubusercontent.com/reaganmbumba/maitre-du-culte/main/config.json';
+const DEF_SETTINGS={eglise:'EGLISE BON NOUVEAU MESSAGE (KCC) « E.B.N.M »',paroisse:'',ville:'',arrete:'Arrêté ministériel N° 078/CAB/VPM/MIN/J&GS/2020 du 03 juillet 2020',maitre:'',heure:'09:00',tol:2,jour:'6',avant:30,daily:'07:00',wa:'',mail:'',cc:'',cfgUrl:CENTRAL_URL,programme:PROGRAMME};
+const TRIGGERS={depassement:'Dépassement du temps prévu',court:'Rubrique trop courte',absent:'Intervenant absent / remplacé',retard:'Retard du début du culte',total:'Durée totale dépassée',effectif:'Effectif non renseigné',verif:'Vérification non conforme'};
+
+/* Liens entre les situations du culte et les articles du règlement intérieur (pt = alinéa). */
+const LIENS=[
+ {art:173,pt:'b',trig:['depassement','court','total','retard'],rubs:[],mots:'désordre,bruit,sainteté,liturgie,téléphone,bavardage'},
+ {art:173,pt:'c',trig:['depassement','court'],rubs:['r9','r10','r11'],mots:'prédication,sermon,hors sujet'},
+ {art:28,trig:['depassement','court'],rubs:['r9','r11'],mots:'objectif,prédication,enseignement'},
+ {art:173,pt:'e',trig:['absent'],rubs:['r9'],mots:'changement de prédicateur,autre prédicateur,prédicateur remplacé'},
+ {art:176,pt:'c',trig:['absent'],rubs:['r9'],mots:'programme de prédication'},
+ {art:187,trig:['absent'],rubs:[],mots:'lettre de témoignage,serviteur visiteur,serviteur étranger,remplaçant'},
+ {art:42,trig:['depassement','court','absent'],rubs:['r6'],mots:'profession de foi,langue'},
+ {art:29,trig:['court'],rubs:['r6'],mots:'commandements,alliance'},
+ {art:173,pt:'d',trig:['depassement','court'],rubs:['r5','r13','r15'],mots:'chant,chorale,rythme,instrument,musique,cantique'},
+ {art:44,trig:[],rubs:[],mots:'publier,enregistrement,vidéo,cantique'},
+ {art:169,pt:'f',trig:['depassement','court'],rubs:['r14','r16'],mots:'offrande,quête,fonds,argent'},
+ {art:258,trig:['depassement'],rubs:['r14'],mots:'offrande,argent,montant,caisse,comptabilité'},
+ {art:67,trig:[],rubs:[],mots:'contribution,soutien financier'},
+ {art:77,trig:['depassement'],rubs:['r18'],mots:'annonce,décision,communiqué'},
+ {art:173,pt:'a',trig:['effectif'],rubs:[],mots:'rapport'},
+ {art:2,trig:[],rubs:[],mots:'politique,parti,élection,campagne'},
+ {art:56,trig:[],rubs:[],mots:'bagarre,dispute,conflit,insulte,débauche,escroquerie,insubordination'},
+ {art:27,trig:[],rubs:[],mots:'autre croyance,fausse doctrine'},
+ {art:30,trig:[],rubs:['r10'],mots:'source,autre livre'},
+ {art:37,trig:[],rubs:[],mots:'doctrine étrangère,autre doctrine,mélange'},
+ {art:36,trig:[],rubs:[],mots:'insigne,autre religion'},
+ {art:33,trig:[],rubs:[],mots:'effigie,tissu,pagne'},
+ {art:197,trig:[],rubs:[],mots:'féticheur,devin,divorce,avortement'},
+ {art:173,pt:'f',trig:[],rubs:[],mots:'chef de paroisse,président du conseil,irrégularité'},
+ {art:184,trig:[],rubs:[],mots:'discipline,sanction,preuve'},
+ {art:185,trig:[],rubs:[],mots:'avertissement,blâme,suspension'},
+ {art:180,trig:[],rubs:[],mots:'réunion du conseil'}
+];
+const CULTE_ARTS=[...new Set([172,...LIENS.map(l=>l.art),174,175,176,42,29,30])].sort((a,b)=>a-b);
+const CHECKS=[
+ {id:'v1',q:'Le prédicateur prévu est présent',art:173,pt:'e',why:'Prédicateur prévu absent ou remplacé'},
+ {id:'v2',q:'Programme entériné par le Conseil paroissial',art:176,pt:'j',why:'Programme du culte non entériné'},
+ {id:'v3',q:'Serviteurs visiteurs avec lettre de témoignage',art:187,why:'Serviteur sans lettre de témoignage'},
+ {id:'v4',q:'Profession de foi dans la langue du milieu',art:42,why:'Profession de foi hors de la langue du milieu'}
+];
+const DEF_NORMES=[
+ {id:'n1',code:'Programme',titre:'Temps prévus du programme du culte',texte:'Chaque rubrique du culte respecte le temps prévu au programme de la paroisse (total 2 h 03). Tout écart est signalé dans le rapport du culte.',triggers:['depassement','court','total'],rubs:[],mots:'',src:'Programme paroissial (modèle de rapport du culte)'}
+];
+
+let S=Object.assign({},DEF_SETTINGS,store.get('settings',{}));
+let NORMES=store.get('normes',null)||DEF_NORMES;
+let FAV=store.get('fav',[]);
+let HIST=store.get('hist',[]);
+let R=store.get('draft',null)||blankReport();
+R.checks=R.checks||{};
+let chrono=store.get('chrono',null);
+let filter='culte';let curTab='accueil';
+
+function blankReport(){return {id:uid(),date:new Date().toISOString().slice(0,10),debut:'',fin:'',rows:{},checks:{},eff:{h:'',f:'',e:''},synthese:'',faitA:S.ville,maitre:S.maitre}}
+function saveDraft(){store.set('draft',R)}
+function saveS(){store.set('settings',S)}
+function toast(t,ms){const el=$('#toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,ms||2600)}
+function buzz(){try{navigator.vibrate&&navigator.vibrate(30)}catch(e){}}
+function confirmBtn(btn,label,fn){if(btn.dataset.armed){delete btn.dataset.armed;fn();return}const old=btn.textContent;btn.dataset.armed='1';btn.textContent=label;setTimeout(()=>{if(btn.dataset.armed){delete btn.dataset.armed;btn.textContent=old}},3500)}
+
+/* ---------- Fiche (bottom sheet) ---------- */
+let onSheetClose=null;
+function openSheet(title,html,after,onClose){$('#sheetTitle').textContent=title;$('#sheetBody').innerHTML=html;$('#sheetBody').scrollTop=0;
+ $('#scrim').hidden=false;$('#sheet').hidden=false;requestAnimationFrame(()=>{$('#scrim').classList.add('on');$('#sheet').classList.add('on')});onSheetClose=onClose||null;if(after)after()}
+function closeSheet(){$('#scrim').classList.remove('on');$('#sheet').classList.remove('on');setTimeout(()=>{$('#scrim').hidden=true;$('#sheet').hidden=true},220);if(onSheetClose){const f=onSheetClose;onSheetClose=null;f()}}
+$('#scrim').onclick=closeSheet;$('#sheetX').onclick=closeSheet;
+
+/* ---------- Articles ---------- */
+function alinea(n,pt){const a=ART[n];if(!a)return '';if(!pt)return a.t;const m=a.t.split('\n').find(l=>l.trim().startsWith(pt+')'));return m?m.trim():a.t}
+function intro(n){const a=ART[n];return a?a.t.split('\n')[0].replace(/\s*;$/,' :'):''}
+function showArticle(n){const a=ART[n];if(!a)return;
+ openSheet('Article '+a.n,`<div class="note" style="margin:0 0 10px">Chapitre ${esc(a.ch)} · ${esc(a.chap)}</div><div class="art-body">${esc(a.t)}</div><div class="btns"><button class="btn sec" id="mFav">${FAV.includes(a.n)?'★ Retirer des favoris':'☆ Ajouter aux favoris'}</button></div>`,
+ ()=>{$('#mFav').onclick=()=>{toggleFav(a.n);$('#mFav').textContent=FAV.includes(a.n)?'★ Retirer des favoris':'☆ Ajouter aux favoris';buzz()}})}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-art]');if(b){e.preventDefault();e.stopPropagation();showArticle(Number(b.dataset.art))}},true);
+function toggleFav(n){FAV=FAV.includes(n)?FAV.filter(x=>x!==n):[...FAV,n];store.set('fav',FAV);if(curTab==='reglement')renderRules()}
+
+/* ---------- Règle du jour & prochain culte ---------- */
+function dayIndex(d){return Math.floor((d||new Date()).getTime()/86400000)}
+function ruleOfDay(d){const pool=CULTE_ARTS.concat(REGLEMENT.map(a=>a.n).filter(n=>!CULTE_ARTS.includes(n)&&ART[n].t.length>60));const i=dayIndex(d);
+ return i%2===0?CULTE_ARTS[(i/2)%CULTE_ARTS.length]:pool[(i*7)%pool.length]}
+function nextCulte(from){const d=new Date(from||Date.now());const [h,m]=(S.heure||'09:00').split(':').map(Number);const t=new Date(d);t.setHours(h,m,0,0);let add=(Number(S.jour)-t.getDay()+7)%7;if(add===0&&t<d)add=7;t.setDate(t.getDate()+add);return t}
+function countdown(){const ms=nextCulte()-Date.now();const days=Math.floor(ms/86400000);if(days===0){const h=Math.floor(ms/3600000);return h>0?`Dans ${h} h`:'Bientôt'}return days===1?'Demain':`Dans ${days} jours`}
+function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-').map(Number);return `${d} ${MOIS[m-1]} ${y}`}
+function renderHome(){
+ const t=nextCulte();const j=JOURS[t.getDay()];$('#heroDate').textContent=`${j[0].toUpperCase()+j.slice(1)} ${t.getDate()} ${MOIS[t.getMonth()]} · ${S.heure}`;$('#heroCount').textContent=countdown()+' · '+S.paroisse;
+ const n=ruleOfDay();const a=ART[n];
+ $('#daily').innerHTML=a?`<div class="k">Règlement intérieur</div><div class="a">Article ${a.n}</div><div class="x">${esc(a.t)}</div><div class="btns two"><button class="btn sec" data-art="${a.n}">Lire</button><button class="btn sec" id="dNext">Une autre</button></div>`:'';
+ const dn=$('#dNext');if(dn)dn.onclick=()=>showArticle(CULTE_ARTS[Math.floor(Math.random()*CULTE_ARTS.length)]);
+ $('#stR').textContent=HIST.length;$('#stA').textContent=anomalies().length;
+ const avgEff=HIST.length?Math.round(HIST.reduce((s,h)=>s+(Number(h.eff.h)||0)+(Number(h.eff.f)||0)+(Number(h.eff.e)||0),0)/HIST.length):null;$('#stE').textContent=avgEff==null?'—':avgEff;
+ const filled=timed().filter(p=>(R.rows[p.id]||{}).reel).length;
+ $('#draftT').textContent='Culte du '+fmtDate(R.date);$('#draftS').textContent=`${filled}/${timed().length} rubriques remplies · ${anomalies().length} anomalie(s)`;
+ $('#btnStart').textContent=chrono?'▶ Reprendre le culte en cours':'▶ Démarrer le culte';
+}
+$('#goDraft').onclick=()=>showTab('rapport');
+
+/* ---------- Notifications ---------- */
+function notifMsg(){if(!LN)$('#notifState').textContent="Les notifications marchent dans l'application installée (Android ou iPhone). Ici, la règle du jour s'affiche sur l'accueil."}
+async function clearNotifs(){const pend=await LN.getPending();if(pend.notifications.length)await LN.cancel({notifications:pend.notifications.map(n=>({id:n.id}))})}
+async function scheduleNotifs(ask){
+ if(!LN){notifMsg();$('#sNotif').checked=false;return}
+ try{
+  let p=await LN.checkPermissions();if(p.display!=='granted'&&ask)p=await LN.requestPermissions();
+  if(p.display!=='granted'){$('#notifState').textContent='Notifications refusées. Autorisez-les dans les réglages du téléphone.';$('#sNotif').checked=false;store.set('notifOn',false);return}
+  await clearNotifs();
+  const list=[];const [dh,dm]=(S.daily||'07:00').split(':').map(Number);const now=new Date();
+  for(let i=0;i<40;i++){const d=new Date(now);d.setDate(d.getDate()+i);d.setHours(dh,dm,0,0);if(d<=now)continue;const n=ruleOfDay(d);const a=ART[n];
+   list.push({id:1000+i,title:`Règle du jour · Article ${n}`,body:a.t.slice(0,220),schedule:{at:d,allowWhileIdle:true},extra:{art:n}})}
+  let c=nextCulte();for(let w=0;w<8;w++){const at=new Date(c.getTime()-(Number(S.avant)||0)*60000);if(at>now)list.push({id:2000+w,title:'Culte bientôt',body:`Art. 173 ${alinea(173,'b')} Préparez le rapport du culte.`,schedule:{at,allowWhileIdle:true},extra:{art:173}});c=new Date(c.getTime()+7*86400000)}
+  await LN.schedule({notifications:list.slice(0,60)});
+  $('#notifState').textContent=`Actives : règle du jour à ${S.daily}, rappel ${S.avant} min avant chaque culte.`;store.set('notifOn',true);$('#sNotif').checked=true;
+ }catch(e){$('#notifState').textContent='Impossible de programmer les notifications : '+e.message}
+}
+async function stopNotifs(){store.set('notifOn',false);if(LN){try{await clearNotifs()}catch(e){}}$('#notifState').textContent='Notifications désactivées.'}
+if(LN){try{LN.addListener('localNotificationActionPerformed',ev=>{const n=ev.notification&&ev.notification.extra&&ev.notification.extra.art;if(n)showArticle(Number(n))})}catch(e){}}
+$('#sNotif').onchange=e=>e.target.checked?scheduleNotifs(true):stopNotifs();
+
+/* ---------- Navigation ---------- */
+const TITLES={accueil:'Accueil',rapport:'Rapport',reglement:'Règlement',historique:'Historique',reglages:'Réglages'};
+$$('.tabbar button').forEach(b=>b.onclick=()=>{buzz();showTab(b.dataset.tab)});
+function showTab(t){if(t!=='reglages'&&typeof setAdmin==='function'&&adminOpen)setAdmin(false);curTab=t;$$('.tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));$$('main>section').forEach(s=>s.hidden=s.id!=='s-'+t);$('#screenTitle').textContent=TITLES[t];window.scrollTo(0,0);
+ if(t==='accueil')renderHome();if(t==='reglement')renderRules();if(t==='historique')renderHist();if(t==='reglages')renderSettings();try{sessionStorage.setItem('mdc_tab',t)}catch(e){}}
+function renderHead(){$('#hdrParoisse').textContent=S.paroisse}
+
+/* ---------- Calculs & anomalies ---------- */
+const toMin=t=>{if(!t)return null;const[a,b]=t.split(':').map(Number);return a*60+b};
+const fmtM=m=>{if(m==null||isNaN(m))return '—';const h=Math.floor(m/60),mm=Math.round(m%60);return h?`${h} h ${String(mm).padStart(2,'0')}`:`${mm} min`};
+const short=l=>l.replace(/ par$/,'');
+const timed=()=>S.programme.filter(p=>!p.texte);
+function row(id){return R.rows[id]||(R.rows[id]={})}
+function ecart(p){const r=R.rows[p.id];if(!r||r.reel===''||r.reel==null||p.prevu==null)return null;return Number(r.reel)-p.prevu}
+const totalPrevu=()=>S.programme.reduce((s,p)=>s+(p.texte?0:Number(p.prevu)||0),0);
+const totalReel=()=>S.programme.reduce((s,p)=>s+(p.texte?0:Number((R.rows[p.id]||{}).reel)||0),0);
+const effTotal=()=>(Number(R.eff.h)||0)+(Number(R.eff.f)||0)+(Number(R.eff.e)||0);
+function anomalies(){
+ const out=[];const tol=Number(S.tol)||0;
+ S.programme.forEach(p=>{
+  if(p.texte)return;const e=ecart(p),r=R.rows[p.id]||{};
+  if(e!=null&&e>tol)out.push({type:'depassement',rub:p.id,sev:e>tol*3?'bad':'warn',msg:`${short(p.label)} : +${e} min sur ${p.prevu} prévues`});
+  if(e!=null&&e<-tol&&Number(r.reel)>0)out.push({type:'court',rub:p.id,sev:'warn',msg:`${short(p.label)} : ${e} min (prévu ${p.prevu})`});
+  if(r.absent)out.push({type:'absent',rub:p.id,sev:'warn',msg:`${short(p.label)} : intervenant absent ou remplacé`});
+ });
+ const d=toMin(R.debut),o=toMin(S.heure);
+ if(d!=null&&o!=null&&d-o>tol)out.push({type:'retard',sev:d-o>15?'bad':'warn',msg:`Début à ${R.debut}, ${d-o} min après l'heure officielle (${S.heure})`});
+ const tp=totalPrevu(),tr=totalReel();
+ if(tr>0&&tr-tp>tol)out.push({type:'total',sev:tr-tp>15?'bad':'warn',msg:`Durée totale ${fmtM(tr)} pour ${fmtM(tp)} prévues (+${tr-tp} min)`});
+ if(R.fin&&!effTotal())out.push({type:'effectif',sev:'warn',msg:"L'effectif n'est pas renseigné"});
+ CHECKS.forEach(c=>{if((R.checks||{})[c.id]==='non')out.push({type:'verif',check:c,sev:'bad',msg:c.why})});
+ return out;
+}
+function refsFor(a){
+ if(a.type==='verif')return [{kind:'art',n:a.check.art,pt:a.check.pt}];
+ const lk=LIENS.filter(l=>l.trig.includes(a.type)&&(l.rubs.length?a.rub&&l.rubs.includes(a.rub):true));
+ const spec=lk.filter(l=>l.rubs.length);const use=spec.length?spec.concat(lk.filter(l=>!l.rubs.length).slice(0,1)):lk;
+ const nm=NORMES.filter(r=>r.triggers.includes(a.type)&&(!r.rubs.length||(a.rub&&r.rubs.includes(a.rub))));
+ return use.map(l=>({kind:'art',n:l.art,pt:l.pt})).concat(nm.map(r=>({kind:'norme',r})));
+}
+function keywordRefs(text){const t=(text||'').toLowerCase();if(!t.trim())return[];
+ const hit=s=>(s||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).some(k=>t.includes(k));
+ return LIENS.filter(l=>hit(l.mots)).map(l=>({kind:'art',n:l.art,pt:l.pt})).concat(NORMES.filter(r=>hit(r.mots)).map(r=>({kind:'norme',r})))}
+const refKey=r=>r.kind==='art'?'a'+r.n+(r.pt||''):'n'+r.r.id;
+const refLabel=r=>r.kind==='art'?`Art. ${r.n}${r.pt?' '+r.pt+')':''}`:r.r.code;
+function refHTML(r,why,sev){
+ if(r.kind==='art')return `<div class="rappel ${sev==='bad'?'bad':''}"><div class="why">${esc(why)}</div><b>Article ${r.n}${r.pt?', alinéa '+r.pt:''}</b>${r.pt?esc(intro(r.n))+'\n':''}${esc(alinea(r.n,r.pt))}<br><button class="linkbtn" data-art="${r.n}">Lire l'article ${r.n} ›</button></div>`;
+ return `<div class="rappel ${sev==='bad'?'bad':''}"><div class="why">${esc(why)}</div><b>${esc(r.r.code)} · ${esc(r.r.titre)}</b>${esc(r.r.texte)}</div>`;
+}
+function rubRefs(p){const an=anomalies().filter(a=>a.rub===p.id).sort((x,y)=>(y.type==='absent')-(x.type==='absent'));const shown=new Set();let h='';
+ an.forEach(a=>refsFor(a).forEach(rf=>{const k=refKey(rf);if(shown.has(k)||shown.size>=3)return;shown.add(k);h+=refHTML(rf,TRIGGERS[a.type],a.sev)}));
+ keywordRefs((R.rows[p.id]||{}).obs).forEach(rf=>{const k=refKey(rf);if(shown.has(k)||shown.size>=4)return;shown.add(k);h+=refHTML(rf,'Lié à votre observation','warn')});return h}
+
+/* ---------- Rapport ---------- */
+function renderChecks(){
+ $('#checks').innerHTML=CHECKS.map(c=>{const v=R.checks[c.id];return `<div class="rowi" style="cursor:default"><span class="main"><span class="t" style="white-space:normal">${esc(c.q)}</span><button class="linkbtn" style="padding:2px 0 0;font-size:.8rem" data-art="${c.art}">Art. ${c.art}${c.pt?' '+c.pt+')':''}</button></span>
+ <span class="seg"><button data-ck="${c.id}" data-v="oui" class="${v==='oui'?'on-oui':''}">Oui</button><button data-ck="${c.id}" data-v="non" class="${v==='non'?'on-non':''}">Non</button></span></div>`}).join('');
+ $$('[data-ck]').forEach(b=>b.onclick=()=>{buzz();const id=b.dataset.ck;R.checks[id]=R.checks[id]===b.dataset.v?'':b.dataset.v;saveDraft();renderChecks();refresh();if(R.checks[id]==='non'){const c=CHECKS.find(x=>x.id===id);toast(`Rappel : Art. ${c.art}${c.pt?' '+c.pt+')':''}. Touchez le lien pour le lire.`)}});
+}
+function renderRubriques(){
+ const tol=Number(S.tol)||0;const an=anomalies();
+ $('#rubriques').innerHTML=S.programme.map((p,i)=>{const r=R.rows[p.id]||{};
+  if(p.texte)return `<button class="rowi" data-rub="${p.id}"><span class="ic" style="background:var(--gold-soft);color:var(--gold)">${i+1}</span><span class="main"><span class="t">${esc(p.label)}</span><span class="s">${esc(r.texte||'Toucher pour saisir')}</span></span><span class="chev">›</span></button>`;
+  const e=ecart(p);let chip='';
+  if(e==null)chip=`<span class="chip none num">${p.prevu==null?'—':p.prevu+' min'}</span>`;
+  else chip=`<span class="chip num ${Math.abs(e)<=tol?'ok':(e>tol*3?'bad':'warn')}">${r.reel} min${e?` (${e>0?'+':''}${e})`:''}</span>`;
+  const hasAn=an.some(a=>a.rub===p.id)||keywordRefs(r.obs).length;
+  return `<button class="rowi" data-rub="${p.id}"><span class="ic"${hasAn?' style="background:var(--warn-soft);color:var(--warn)"':''}>${i+1}</span><span class="main"><span class="t">${esc(short(p.label))}</span><span class="s">${esc([r.qui,r.absent?'remplacé':'',r.obs].filter(Boolean).join(' · ')||(p.par?'Intervenant à saisir':'Toucher pour saisir'))}</span></span>${chip}<span class="chev">›</span></button>`}).join('');
+ $$('[data-rub]').forEach(b=>b.onclick=()=>openRub(b.dataset.rub));
+}
+function stepperHTML(id,val){return `<button type="button" data-st="-1" aria-label="Moins">−</button><input id="${id}" type="number" min="0" inputmode="numeric" class="num" value="${esc(val??'')}" placeholder="0"><button type="button" data-st="1" aria-label="Plus">+</button>`}
+function bindStepper(box,onchange){const inp=box.querySelector('input');box.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{buzz();inp.value=Math.max(0,(Number(inp.value)||0)+Number(b.dataset.st));onchange(inp.value)});inp.oninput=()=>onchange(inp.value)}
+function openRub(id){
+ const p=S.programme.find(x=>x.id===id);const i=S.programme.indexOf(p);const r=row(id);
+ if(p.texte){openSheet(`${i+1}. ${p.label}`,`<textarea class="input" id="rbTxt" placeholder="${id==='r10'?'Ex. Ésaïe 55 : 6-11':'Idée principale du message'}">${esc(r.texte||'')}</textarea><div class="btns"><button class="btn" id="rbOk">Valider</button></div>`,
+  ()=>{$('#rbTxt').oninput=e=>{r.texte=e.target.value;saveDraft()};$('#rbOk').onclick=closeSheet},()=>{renderRubriques();refresh()});return}
+ openSheet(`${i+1}. ${short(p.label)}`,`
+  <label class="lbl" for="rbQui" style="margin-top:4px">${p.par?'Intervenant':'Responsable'}</label><input class="input" id="rbQui" value="${esc(r.qui||'')}" placeholder="Nom">
+  <div class="card list" style="margin-top:14px;background:var(--surface2)">
+   <div class="field"><label>Temps réel (min)</label><div class="stepper" id="rbSt">${stepperHTML('rbMin',r.reel)}</div></div>
+   <div class="field"><label>Temps prévu</label><span class="num" style="font-weight:700">${p.prevu==null?'—':p.prevu+' min'}</span></div>
+   <div class="field"><label for="rbAbs">Absent / remplacé</label><span class="switch"><input type="checkbox" id="rbAbs" ${r.absent?'checked':''}><span></span></span></div>
+  </div>
+  <label class="lbl" for="rbObs">Observation</label><input class="input" id="rbObs" value="${esc(r.obs||'')}" placeholder="Remarque éventuelle">
+  <div id="rbRefs" style="margin-top:14px"></div>
+  <div class="btns"><button class="btn" id="rbOk">Valider</button></div>`,()=>{
+  const up=()=>{saveDraft();$('#rbRefs').innerHTML=rubRefs(p)};
+  $('#rbQui').oninput=e=>{r.qui=e.target.value;saveDraft()};
+  bindStepper($('#rbSt'),v=>{r.reel=v;up()});
+  $('#rbAbs').onchange=e=>{r.absent=e.target.checked;up()};
+  $('#rbObs').oninput=e=>{r.obs=e.target.value;up()};
+  $('#rbOk').onclick=closeSheet;up();
+ },()=>{renderRubriques();refresh()});
+}
+function renderEff(){$$('[data-eff]').forEach(box=>{const k=box.dataset.eff;box.innerHTML=stepperHTML('eff_'+k,R.eff[k]);bindStepper(box,v=>{R.eff[k]=v;saveDraft();refresh()})})}
+function refresh(){
+ const an=anomalies();const tp=totalPrevu(),tr=totalReel();
+ $('#fTotal').textContent=effTotal();
+ $('#totLine').textContent=tr?`· ${fmtM(tr)} / ${fmtM(tp)}`:`· prévu ${fmtM(tp)}`;
+ $('#anCount').hidden=!an.length;$('#anCount').textContent=an.length;
+ $('#tabBadge').hidden=!an.length;$('#tabBadge').textContent=an.length;
+ let h=an.map(a=>{const refs=refsFor(a);return `<div class="anom ${a.sev}"><div class="m">${esc(a.msg)}</div>${refs.map(r=>r.kind==='art'?`<div class="r"><button class="linkbtn" style="padding:0" data-art="${r.n}">Art. ${r.n}${r.pt?' '+r.pt+')':''}</button> ${esc(alinea(r.n,r.pt))}</div>`:`<div class="r"><b>${esc(r.r.code)}</b> ${esc(r.r.texte)}</div>`).join('')}</div>`}).join('');
+ const seen=new Set(an.flatMap(a=>refsFor(a).map(refKey)));const kw=keywordRefs(R.synthese).filter(r=>{const k=refKey(r);if(seen.has(k))return false;seen.add(k);return true});
+ h+=kw.map(r=>`<div class="anom"><div class="m">Lié à votre synthèse</div><div class="r">${r.kind==='art'?`<button class="linkbtn" style="padding:0" data-art="${r.n}">Art. ${r.n}${r.pt?' '+r.pt+')':''}</button> ${esc(alinea(r.n,r.pt))}`:esc(r.r.texte)}</div></div>`).join('');
+ $('#summary').innerHTML=h||`<div class="anom" style="color:var(--muted)">Aucune anomalie. Dès qu'un écart ou un problème est noté, l'article du règlement concerné s'affiche ici.</div>`;
+}
+function bindReport(){
+ R.checks=R.checks||{};
+ $('#fDate').value=R.date;$('#fDebut').value=R.debut;$('#fFin').value=R.fin;
+ $('#fSynthese').value=R.synthese;$('#fFaitA').value=R.faitA||S.ville;$('#fMaitre').value=R.maitre||S.maitre;
+ renderChecks();renderRubriques();renderEff();refresh();
+}
+[['fDate','date'],['fDebut','debut'],['fFin','fin'],['fSynthese','synthese'],['fFaitA','faitA'],['fMaitre','maitre']].forEach(([id,k])=>$('#'+id).addEventListener('input',e=>{R[k]=e.target.value;saveDraft();refresh()}));
+$('#btnInsere').onclick=()=>{const an=anomalies();if(!an.length){toast('Aucune anomalie à ajouter');return}
+ const txt='Anomalies constatées :\n'+an.map(a=>{const rf=refsFor(a).filter(r=>r.kind==='art');return '- '+a.msg+(rf.length?' (cf. '+[...new Set(rf.map(refLabel))].join(', ')+' du Règlement intérieur)':'')}).join('\n');
+ R.synthese=(R.synthese?R.synthese.trim()+'\n\n':'')+txt;$('#fSynthese').value=R.synthese;saveDraft();refresh();toast('Anomalies ajoutées à la synthèse')};
+$('#btnNouveau').onclick=function(){confirmBtn(this,'Confirmer ?',()=>{this.textContent='Nouveau';R=blankReport();saveDraft();stopChrono(false);bindReport();toast('Nouveau rapport prêt')})};
+$('#btnSave').onclick=()=>{R.savedAt=new Date().toISOString();R.paroisse=S.paroisse;R.anomalies=anomalies().map(a=>a.msg);R.totalReel=totalReel();R.totalPrevu=totalPrevu();
+ const i=HIST.findIndex(h=>h.id===R.id);const copy=JSON.parse(JSON.stringify(R));if(i>=0)HIST[i]=copy;else HIST.unshift(copy);store.set('hist',HIST);buzz();toast('Rapport enregistré dans l\'historique')};
+function reportText(rep){
+ const lines=[S.eglise,S.paroisse+' — '+S.ville,'','*RAPPORT DU CULTE*',`Date : ${rep.date||'—'}   Début : ${rep.debut||'—'}   Fin : ${rep.fin||'—'}`,''];
+ S.programme.forEach((p,i)=>{const r=rep.rows[p.id]||{};
+  if(p.texte){lines.push(`${i+1}. ${p.label} : ${r.texte||'—'}`);return}
+  const e=(r.reel!==''&&r.reel!=null&&p.prevu!=null)?Number(r.reel)-p.prevu:null;
+  lines.push(`${i+1}. ${p.label}${r.qui?' '+r.qui:''} : ${r.reel||'—'} min / ${p.prevu??'—'}${e!=null?` (${e>0?'+':''}${e})`:''}${r.absent?' [remplacé]':''}${r.obs?' — '+r.obs:''}`)});
+ lines.push('',`Effectif : ${(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0)} (H ${rep.eff.h||0}, F ${rep.eff.f||0}, E ${rep.eff.e||0})`);
+ if(rep.synthese)lines.push('','*Synthèse*',rep.synthese);
+ lines.push('',`Fait à ${rep.faitA||S.ville}, le ${rep.date||''}`,`Le Maître du Culte : ${rep.maitre||''}`);
+ return lines.join('\n');
+}
+function copyText(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Rapport copié. Collez-le dans WhatsApp.')).catch(()=>{openSheet('Copier le rapport',`<p class="note" style="margin:0 0 8px">Sélectionnez le texte puis copiez-le.</p><textarea class="input" id="cpTxt" style="min-height:50vh">${esc(t)}</textarea>`,()=>$('#cpTxt').select())})}
+
+/* ---------- Mode culte en direct ---------- */
+let tick=null;
+function hintFor(p){const l=LIENS.find(l=>l.rubs.includes(p.id))||LIENS[0];return `Art. ${l.art} · ${alinea(l.art,l.pt)}`}
+function startCulte(){if(!chrono){if(!R.debut){R.debut=new Date().toTimeString().slice(0,5);$('#fDebut').value=R.debut}chrono={idx:0,start:Date.now()};store.set('chrono',chrono);saveDraft()}showLive()}
+$('#btnStart').onclick=startCulte;$('#btnChrono').onclick=startCulte;
+function showLive(){$('#live').hidden=false;clearInterval(tick);tick=setInterval(drawLive,500);paintStep();drawLive();try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}}
+function paintStep(){const T=timed();const p=T[chrono.idx];if(!p)return;const r=row(p.id);
+ $('#lvStep').textContent=`${chrono.idx+1} / ${T.length}`;$('#lvProg').style.width=(chrono.idx/T.length*100)+'%';
+ $('#lvName').textContent=short(p.label);$('#lvPrevu').textContent=p.prevu==null?'Pas de temps prévu':`Prévu : ${p.prevu} min`;
+ $('#lvWho').value=r.qui||'';$('#lvWho').hidden=!p.par;$('#lvWho').oninput=e=>{r.qui=e.target.value;saveDraft()};
+ $('#lvHint').textContent=hintFor(p)}
+function drawLive(){const p=timed()[chrono.idx];if(!p){stopChrono(true);return}
+ const s=Math.floor((Date.now()-chrono.start)/1000);$('#lvTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+ const tot=(p.prevu||0)*60;const frac=tot?Math.min(1,s/tot):0;$('#lvArc').setAttribute('stroke-dashoffset',String(339.3*(1-frac)));
+ const over=tot&&s>tot;$('#lvRing').classList.toggle('over',!!over);$('#lvArc').setAttribute('stroke',over?'#ff8a80':'#e6b65a');
+ if(over&&!chrono.warned){chrono.warned=true;$('#lvHint').textContent=`Temps prévu dépassé.\nArt. 173 ${alinea(173,'b')}`;try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}}
+function commitCurrent(){const p=timed()[chrono.idx];if(!p)return;row(p.id).reel=String(Math.max(0,Math.round((Date.now()-chrono.start)/60000)))}
+$('#lvNext').onclick=()=>{buzz();commitCurrent();chrono.idx++;chrono.start=Date.now();chrono.warned=false;store.set('chrono',chrono);saveDraft();if(!timed()[chrono.idx]){stopChrono(true);return}paintStep();drawLive()};
+$('#lvEnd').onclick=function(){confirmBtn(this,'Confirmer',()=>{this.textContent='Terminer';commitCurrent();stopChrono(true)})};
+$('#lvMin').onclick=()=>{$('#live').hidden=true;clearInterval(tick);renderRubriques();refresh();showTab('rapport');toast('Le culte continue. Touchez « Mode culte en direct » pour revenir.')};
+function stopChrono(setEnd){clearInterval(tick);if(chrono&&setEnd){R.fin=new Date().toTimeString().slice(0,5);$('#fFin').value=R.fin}
+ const was=!!chrono;chrono=null;store.set('chrono',null);$('#live').hidden=true;saveDraft();renderRubriques();refresh();if(was&&setEnd){showTab('rapport');toast('Culte terminé. Vérifiez puis enregistrez le rapport.',3500)}}
+
+/* ---------- Règlement ---------- */
+$('#ruleSearch').oninput=renderRules;
+$$('#filters button').forEach(b=>b.onclick=()=>{filter=b.dataset.f;$$('#filters button').forEach(x=>x.setAttribute('aria-pressed',x===b));renderRules()});
+const norm=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+function hl(text,q){const e=esc(text);if(!q)return e;const words=q.split(/\s+/).filter(w=>w.length>2);if(!words.length)return e;
+ return e.replace(new RegExp('('+words.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')','gi'),'<mark>$1</mark>')}
+function renderRules(){
+ const q=$('#ruleSearch').value.trim();const nq=norm(q);$('#ruleNote').hidden=filter==='norme';
+ if(filter==='norme'){renderNormes();return}
+ let list=REGLEMENT;
+ if(filter==='culte'&&!q)list=list.filter(a=>CULTE_ARTS.includes(a.n));
+ if(filter==='fav')list=list.filter(a=>FAV.includes(a.n));
+ if(q)list=list.filter(a=>norm('article '+a.n+' '+a.t).includes(nq)||nq.split(/\s+/).every(w=>norm(a.t).includes(w)));
+ if(!list.length){$('#rulesList').innerHTML=`<p class="note">${filter==='fav'?'Aucun favori. Ouvrez un article et touchez « Ajouter aux favoris ».':'Aucun article ne correspond.'}</p>`;return}
+ const groups={};list.forEach(a=>(groups[a.ch]=groups[a.ch]||{chap:a.chap,arts:[]}).arts.push(a));
+ $('#rulesList').innerHTML=Object.entries(groups).map(([ch,g])=>`<div class="chap-h">Chap. ${esc(ch)} · ${esc(g.chap)}</div><div class="card list">${g.arts.map(a=>`<button class="rowi" data-art="${a.n}"><span class="ic" style="width:auto;min-width:40px;padding:0 6px">${a.n}</span><span class="main"><span class="s2" style="color:var(--ink)">${hl(a.t.replace(/\n/g,' '),q)}</span></span>${FAV.includes(a.n)?'<span style="color:var(--gold)">★</span>':''}<span class="chev">›</span></button>`).join('')}</div>`).join('');
+}
+function renderNormes(){
+ $('#rulesList').innerHTML=`<p class="note">Les normes propres à la paroisse complètent le règlement et sont rappelées automatiquement.</p><div class="card list">${NORMES.map(r=>`<button class="rowi" data-nm="${r.id}"><span class="ic" style="background:var(--gold-soft);color:var(--gold)">N</span><span class="main"><span class="t">${esc(r.titre)}</span><span class="s2">${esc(r.texte)}</span></span><span class="chev">›</span></button>`).join('')||'<div class="anom note">Aucune norme.</div>'}</div><div class="btns"><button class="btn sec" id="btnAddRule">+ Ajouter une norme</button></div>`;
+ $$('[data-nm]').forEach(b=>b.onclick=()=>openNorme(b.dataset.nm));$('#btnAddRule').onclick=()=>openNorme(null);
+}
+function openNorme(id){
+ const r=id?NORMES.find(x=>x.id===id):{id:uid(),code:'Norme '+(NORMES.length+1),titre:'',texte:'',triggers:[],rubs:[],mots:'',src:''};
+ openSheet(id?'Modifier la norme':'Nouvelle norme',`
+ <label class="lbl" for="rfTitre" style="margin-top:4px">Titre</label><input class="input" id="rfTitre" value="${esc(r.titre)}">
+ <label class="lbl" for="rfTexte">Texte</label><textarea class="input" id="rfTexte">${esc(r.texte)}</textarea>
+ <label class="lbl" for="rfSrc">Source (décision, lettre, conseil…)</label><input class="input" id="rfSrc" value="${esc(r.src||'')}">
+ <div class="lbl">Rappeler quand…</div><div class="card list" style="background:var(--surface2)">${Object.entries(TRIGGERS).filter(([k])=>k!=='verif').map(([k,v])=>`<div class="field"><label>${v}</label><span class="switch"><input type="checkbox" name="rfT" value="${k}" ${r.triggers.includes(k)?'checked':''}><span></span></span></div>`).join('')}</div>
+ <label class="lbl" for="rfMots">Mots-clés dans les observations (séparés par des virgules)</label><input class="input" id="rfMots" value="${esc(r.mots)}">
+ <div class="btns"><button class="btn" id="rfSave">Enregistrer</button>${id?'<button class="btn danger" id="rfDel">Supprimer</button>':''}</div>`,()=>{
+ $('#rfSave').onclick=()=>{const n={...r,titre:$('#rfTitre').value.trim(),texte:$('#rfTexte').value.trim(),src:$('#rfSrc').value.trim(),mots:$('#rfMots').value,triggers:$$('[name=rfT]:checked').map(x=>x.value)};
+  if(!n.titre||!n.texte){toast('Ajoutez au moins un titre et un texte');return}
+  const i=NORMES.findIndex(x=>x.id===n.id);if(i>=0)NORMES[i]=n;else NORMES.push(n);store.set('normes',NORMES);closeSheet();renderNormes();refresh();toast('Norme enregistrée')};
+ if(id)$('#rfDel').onclick=function(){confirmBtn(this,'Confirmer la suppression',()=>{NORMES=NORMES.filter(x=>x.id!==id);store.set('normes',NORMES);closeSheet();renderNormes();refresh()})};
+ });
+}
+
+/* ---------- Historique ---------- */
+function renderHist(){
+ const n=HIST.length;const withAn=HIST.filter(h=>(h.anomalies||[]).length).length;
+ const avg=n?Math.round(HIST.reduce((s,h)=>s+((h.totalReel||0)-(h.totalPrevu||0)),0)/n):0;
+ $('#stats').innerHTML=`<div class="stat"><div class="v num">${n}</div><div class="l">rapports</div></div><div class="stat"><div class="v num">${withAn}</div><div class="l">avec anomalies</div></div><div class="stat"><div class="v num">${n?(avg>0?'+':'')+avg:'—'}</div><div class="l">écart moyen (min)</div></div>`;
+ $('#histList').innerHTML=HIST.map(h=>`<button class="rowi" data-h="${h.id}"><span class="ic"${(h.anomalies||[]).length?' style="background:var(--warn-soft);color:var(--warn)"':''}>${(h.anomalies||[]).length||'✓'}</span><span class="main"><span class="t">Culte du ${esc(fmtDate(h.date))}</span><span class="s">${esc(h.debut||'?')}–${esc(h.fin||'?')} · ${(h.anomalies||[]).length?(h.anomalies.length+' anomalie(s)'):'aucune anomalie'}</span></span><span class="chev">›</span></button>`).join('')||'<div class="anom note" style="margin:0">Aucun rapport enregistré. Remplissez un rapport puis touchez « Enregistrer le rapport ».</div>';
+ $$('[data-h]').forEach(b=>b.onclick=()=>{const h=HIST.find(x=>x.id===b.dataset.h);
+  openSheet('Culte du '+fmtDate(h.date),`<div class="card list" style="background:var(--surface2)">${(h.anomalies||[]).map(a=>`<div class="anom warn"><div class="m">${esc(a)}</div></div>`).join('')||'<div class="anom">Aucune anomalie.</div>'}</div><div class="btns"><button class="btn" id="hOpen">Ouvrir le rapport</button><button class="btn sec" id="hCp">Envoyer (PDF)</button><button class="btn danger" id="hRm">Supprimer</button></div>`,()=>{
+   $('#hOpen').onclick=()=>{R=JSON.parse(JSON.stringify(h));saveDraft();bindReport();closeSheet();showTab('rapport')};
+   $('#hCp').onclick=()=>{closeSheet();setTimeout(()=>openSend(h),260)};
+   $('#hRm').onclick=function(){confirmBtn(this,'Confirmer la suppression',()=>{HIST=HIST.filter(x=>x.id!==h.id);store.set('hist',HIST);closeSheet();renderHist()})};
+  })});
+}
+
+/* ---------- Réglages ---------- */
+const SMAP=[['sEglise','eglise'],['sParoisse','paroisse'],['sVille','ville'],['sArrete','arrete'],['sMaitre','maitre'],['sHeure','heure'],['sTol','tol'],['sJour','jour'],['sAvant','avant'],['sDaily','daily'],['aWa','wa'],['aMail','mail'],['aCc','cc'],['aCfg','cfgUrl']];
+SMAP.forEach(([id,k])=>$('#'+id).addEventListener('input',e=>{S[k]=e.target.value;saveS();renderHead();refresh();if(['heure','jour','avant','daily'].includes(k)&&store.get('notifOn',false))scheduleNotifs(false)}));
+function renderSettings(){SMAP.forEach(([id,k])=>$('#'+id).value=S[k]??'');$('#roParoisse').textContent=S.paroisse||'—';$('#roVille').textContent=S.ville||'—';$('#roDest').textContent=[dest().wa,dest().mail].filter(Boolean).join(' · ')||'non défini (voir l\'administrateur)';cfgState();$('#sNotif').checked=!!store.get('notifOn',false)&&!!LN;notifMsg();
+ $('#progEdit').innerHTML=S.programme.map((p,i)=>`<div class="field"><label style="font-size:.95rem">${i+1}. ${esc(short(p.label))}</label>${p.texte?'<span class="note" style="margin:0">texte</span>':`<div class="stepper" data-prog="${p.id}">${stepperHTML('pg_'+p.id,p.prevu)}</div>`}</div>`).join('');
+ $$('[data-prog]').forEach(box=>bindStepper(box,v=>{const p=S.programme.find(x=>x.id===box.dataset.prog);p.prevu=v===''?null:Number(v);saveS();renderRubriques();refresh()}));
+}
+$('#btnExport').onclick=()=>{$('#backup').value=JSON.stringify({v:2,settings:S,normes:NORMES,fav:FAV,hist:HIST});$('#backup').select();toast('Sauvegarde générée : copiez le texte')};
+$('#btnImport').onclick=()=>{try{const d=JSON.parse($('#backup').value);if(!d.settings)throw 0;S=Object.assign({},DEF_SETTINGS,d.settings);NORMES=d.normes||NORMES;FAV=d.fav||[];HIST=d.hist||[];saveS();store.set('normes',NORMES);store.set('fav',FAV);store.set('hist',HIST);renderHead();renderSettings();bindReport();toast('Données restaurées')}catch(e){toast('Texte invalide : collez une sauvegarde générée par l\'application')}};
+
+/* ---------- Logo KCC : lettres dorées dans un cercle doré, fond blanc (Art. 4) ---------- */
+let logoN=0;
+function logoSVG(cls){const g='kccGold'+(++logoN);return `<svg class="logo ${cls||''}" viewBox="0 0 120 120" role="img" aria-label="Logo KCC"><defs><linearGradient id="${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e9c46a"/><stop offset=".5" stop-color="#c8961e"/><stop offset="1" stop-color="#9c6b0c"/></linearGradient></defs><circle cx="60" cy="60" r="57" fill="#fff"/><circle cx="60" cy="60" r="53" fill="none" stroke="url(#${g})" stroke-width="5"/><circle cx="60" cy="60" r="45" fill="none" stroke="url(#${g})" stroke-width="1.2"/><text x="60" y="73" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="38" letter-spacing="1" fill="url(#${g})">KCC</text></svg>`}
+$('#splashLogo').innerHTML=logoSVG();$('#barLogo').innerHTML=logoSVG();
+setTimeout(()=>{$('#splash').classList.add('out');setTimeout(()=>$('#splash').hidden=true,500)},1400);
+
+/* ---------- Espace administrateur ---------- */
+/* Le mot de passe n'est jamais stocké en clair : seule son empreinte SHA-256 l'est. */
+const ADMIN_HASH_DEFAULT='330b0fe53b11f5fa292f7dcdb3a9986ebd88f1347bf9dddf500d45a66bfab2c8';
+async function hashPw(pw){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mdc-ebnm:'+pw));return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('')}
+function adminHash(){return store.get('adminHash',ADMIN_HASH_DEFAULT)}
+let adminOpen=false;
+function pwSheet(title,sub,fields,onOk){
+ openSheet(title,`<p class="note" style="margin:0 0 4px">${esc(sub)}</p>${fields.map((f,i)=>`<label class="lbl" for="pw${i}">${esc(f)}</label><input class="input" id="pw${i}" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">`).join('')}
+ <label class="checks" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.9rem"><input type="checkbox" id="pwShow" style="width:auto"> Afficher</label>
+ <p class="note" id="pwErr" style="color:var(--bad);min-height:1.2em"></p><div class="btns"><button class="btn" id="pwOk">Valider</button></div>`,()=>{
+  const ins=fields.map((f,i)=>$('#pw'+i));ins[0].focus();
+  $('#pwShow').onchange=e=>ins.forEach(x=>x.type=e.target.checked?'text':'password');
+  const go=async()=>{const err=await onOk(ins.map(x=>x.value));if(err){$('#pwErr').textContent=err;try{navigator.vibrate&&navigator.vibrate([80,60,80])}catch(e){}}};
+  $('#pwOk').onclick=go;ins.forEach(x=>x.onkeydown=e=>{if(e.key==='Enter')go()});
+ })}
+function setAdmin(open){adminOpen=open;$('#adminBox').hidden=!open;$('#adminSub').textContent=open?'Ouvert · modifiez puis touchez « Fermer »':'WhatsApp, e-mail, paroisse, programme';if(open)renderSettings()}
+$('#btnAdmin').onclick=()=>{if(adminOpen){setAdmin(false);return}pwSheet('Espace administrateur','Réservé à l\'administrateur.',['Mot de passe administrateur'],async([pw])=>{if(await hashPw(pw.trim())!==adminHash())return 'Mot de passe incorrect';closeSheet();setAdmin(true);toast('Espace administrateur ouvert')})};
+$('#btnLock').onclick=()=>{setAdmin(false);window.scrollTo(0,0);toast('Espace administrateur fermé')};
+$('#btnPin').onclick=()=>pwSheet('Changer le mot de passe','Au moins 8 caractères.',['Nouveau mot de passe','Confirmer le mot de passe'],async([a,b])=>{a=a.trim();if(a.length<8)return 'Au moins 8 caractères';if(a!==b.trim())return 'Les deux mots de passe sont différents';store.set('adminHash',await hashPw(a));closeSheet();toast('Mot de passe administrateur changé')});
+
+/* ---------- Rapport PDF ---------- */
+const GOLD=[184,134,11],NAVY=[28,74,138],INK=[20,28,44],GREY=[102,112,133];
+function dateLongue(s){if(!s)return '';const [y,m,d]=s.split('-').map(Number);const dt=new Date(y,m-1,d);const j=JOURS[dt.getDay()];const mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];return `${j[0].toUpperCase()+j.slice(1)} ${d} ${mois[m-1]} ${y}`}
+function dateCourte(s){if(!s)return '…';const [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
+function pdfLogo(doc,cx,cy,r){doc.setDrawColor(...GOLD);doc.setFillColor(255,255,255);doc.setLineWidth(r*0.09);doc.circle(cx,cy,r,'FD');doc.setLineWidth(r*0.025);doc.circle(cx,cy,r*0.84,'S');
+ doc.setTextColor(...GOLD);doc.setFont('times','bold');doc.setFontSize(r*1.8);doc.text('KCC',cx,cy+r*0.22,{align:'center'})}
+function makePDF(rep){
+ const J=window.jspdf;if(!J||!J.jsPDF)throw new Error("Le module PDF n'est pas chargé.");
+ const doc=new J.jsPDF({unit:'mm',format:'a4'});const W=210,M=14;
+ const tol=Number(S.tol)||0;
+ // En-tête
+ pdfLogo(doc,M+12,24,12);
+ doc.setTextColor(...INK);doc.setFont('helvetica','bold');doc.setFontSize(12.5);doc.text(S.eglise,M+30,18,{maxWidth:W-M*2-30});
+ doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(`${S.paroisse} — ${S.ville}`.toUpperCase(),M+30,25);
+ doc.setFontSize(8);doc.setTextColor(...GREY);doc.text(S.arrete,M+30,30.5,{maxWidth:W-M*2-30});
+ doc.setDrawColor(...GOLD);doc.setLineWidth(.8);doc.line(M,40,W-M,40);doc.setLineWidth(.2);doc.line(M,41.3,W-M,41.3);
+ doc.setTextColor(...INK);doc.setFont('helvetica','bold');doc.setFontSize(17);doc.text('RAPPORT DU CULTE',W/2,52,{align:'center',charSpace:1});
+ doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(...GREY);doc.text(dateLongue(rep.date),W/2,58,{align:'center'});
+ // Bandeau infos
+ const tp=S.programme.reduce((a,p)=>a+(p.texte?0:Number(p.prevu)||0),0);
+ const tr=S.programme.reduce((a,p)=>a+(p.texte?0:Number((rep.rows[p.id]||{}).reel)||0),0);
+ const effT=(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0);
+ doc.autoTable({startY:63,theme:'grid',margin:{left:M,right:M},
+  head:[['Date','Heure de début','Heure de fin','Durée réelle','Durée prévue','Effectif']],
+  body:[[dateCourte(rep.date),rep.debut||'—',rep.fin||'—',tr?fmtM(tr):'—',fmtM(tp),String(effT)]],
+  styles:{halign:'center',fontSize:9.5,cellPadding:2.2,lineColor:[220,224,232],textColor:INK},headStyles:{fillColor:[247,241,226],textColor:[120,85,10],fontStyle:'bold',fontSize:8}});
+ // Déroulement
+ const body=[];S.programme.forEach((p,i)=>{const r=rep.rows[p.id]||{};
+  if(p.texte){body.push([{content:String(i+1),styles:{halign:'center'}},{content:p.label.toUpperCase(),styles:{fontStyle:'bold'}},{content:r.texte||'—',colSpan:5,styles:{fontStyle:'italic'}}]);return}
+  const e=(r.reel!==''&&r.reel!=null&&p.prevu!=null)?Number(r.reel)-p.prevu:null;
+  body.push([String(i+1),short(p.label).toUpperCase(),(r.qui||'')+(r.absent?' (remplacé)':''),r.reel?r.reel+' min':'—',p.prevu==null?'—':p.prevu+' min',e==null?'—':(e>0?'+':'')+e,r.obs||''])});
+ body.push([{content:'',styles:{}},{content:'TOTAL',styles:{fontStyle:'bold'}},'',{content:tr?tr+' min':'—',styles:{fontStyle:'bold'}},{content:tp+' min',styles:{fontStyle:'bold'}},{content:tr?((tr-tp>0?'+':'')+(tr-tp)):'—',styles:{fontStyle:'bold'}},'']);
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('DÉROULEMENT DU CULTE',M,doc.lastAutoTable.finalY+9);
+ doc.autoTable({startY:doc.lastAutoTable.finalY+11,theme:'striped',margin:{left:M,right:M},
+  head:[['N°','Rubrique','Intervenant','Réel','Prévu','Écart','Observation']],body,
+  styles:{fontSize:8.4,cellPadding:1.5,textColor:INK,valign:'middle'},headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold'},alternateRowStyles:{fillColor:[245,247,251]},
+  columnStyles:{0:{cellWidth:9,halign:'center'},1:{cellWidth:52},2:{cellWidth:32},3:{cellWidth:15,halign:'center'},4:{cellWidth:15,halign:'center'},5:{cellWidth:13,halign:'center',fontStyle:'bold'},6:{cellWidth:'auto'}},
+  didParseCell:d=>{if(d.section==='body'&&d.column.index===5){const v=parseInt(d.cell.raw,10);if(!isNaN(v))d.cell.styles.textColor=Math.abs(v)<=tol?[27,122,72]:(v>tol*3?[192,38,28]:[163,95,0])}}});
+ // Vérifications + effectif
+ let y=doc.lastAutoTable.finalY+9;if(y+42>282){doc.addPage();y=20}
+ const chk=CHECKS.map(c=>[c.q,{content:(rep.checks||{})[c.id]==='oui'?'Oui':(rep.checks||{})[c.id]==='non'?'Non':'—',styles:{halign:'center',fontStyle:'bold',textColor:(rep.checks||{})[c.id]==='non'?[192,38,28]:(rep.checks||{})[c.id]==='oui'?[27,122,72]:GREY}},`Art. ${c.art}${c.pt?' '+c.pt+')':''}`]);
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('VÉRIFICATIONS',M,y);doc.text('EFFECTIF',W-M-58,y);
+ doc.autoTable({startY:y+2,theme:'grid',margin:{left:M,right:M+64},body:chk,styles:{fontSize:8.4,cellPadding:1.6,lineColor:[220,224,232],textColor:INK},columnStyles:{1:{cellWidth:14},2:{cellWidth:20,textColor:GREY}}});
+ const yChk=doc.lastAutoTable.finalY;
+ doc.autoTable({startY:y+2,theme:'grid',margin:{left:W-M-58,right:M},body:[['Hommes',rep.eff.h||'0'],['Femmes',rep.eff.f||'0'],['Enfants',rep.eff.e||'0'],[{content:'Total',styles:{fontStyle:'bold'}},{content:String(effT),styles:{fontStyle:'bold'}}]],styles:{fontSize:9,cellPadding:1.8,lineColor:[220,224,232],textColor:INK},columnStyles:{1:{halign:'center',cellWidth:20}}});
+ y=Math.max(yChk,doc.lastAutoTable.finalY)+9;
+ // Anomalies
+ const an=reportAnomalies(rep);
+ if(y>250){doc.addPage();y=20}
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('ANOMALIES ET RAPPEL DU RÈGLEMENT INTÉRIEUR',M,y);
+ doc.autoTable({startY:y+2,theme:'grid',margin:{left:M,right:M},
+  head:[['Anomalie constatée','Norme concernée']],
+  body:an.length?an.map(a=>[a.msg,refsFor(a).filter(r=>r.kind==='art').map(r=>r.kind==='art'?`Art. ${r.n}${r.pt?' '+r.pt+')':''} : ${r.pt?alinea(r.n,r.pt).replace(/^[a-j]\)\s*/,''):alinea(r.n,r.pt).split('\n')[0]}`:`${r.r.code} : ${r.r.texte}`).join('\n')]):[[{content:'Aucune anomalie constatée.',colSpan:2,styles:{halign:'center',textColor:[27,122,72]}}]],
+  styles:{fontSize:8.4,cellPadding:2,lineColor:[220,224,232],textColor:INK,valign:'top'},headStyles:{fillColor:[253,240,216],textColor:[163,95,0]},columnStyles:{0:{cellWidth:62,fontStyle:'bold'}}});
+ y=doc.lastAutoTable.finalY+9;
+ // Synthèse
+ const syn=doc.splitTextToSize(rep.synthese||'—',W-M*2-8);const hSyn=Math.max(18,syn.length*4.4+8);
+ if(y+hSyn+40>285){doc.addPage();y=20}
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('SYNTHÈSE',M,y);
+ doc.setDrawColor(...GOLD);doc.setLineWidth(.3);doc.roundedRect(M,y+2,W-M*2,hSyn,2,2,'S');
+ doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...INK);doc.text(syn,M+4,y+8);
+ y=y+2+hSyn+12;if(y>255){doc.addPage();y=24}
+ // Signature
+ doc.setFontSize(10);doc.text(`Fait à ${rep.faitA||S.ville}, le ${dateCourte(rep.date)}`,W-M,y,{align:'right'});
+ doc.setFont('helvetica','bold');doc.text('Le Maître du Culte',W-M-30,y+9,{align:'center'});
+ doc.setDrawColor(...GREY);doc.setLineWidth(.2);doc.line(W-M-62,y+26,W-M,y+26);
+ doc.setFont('helvetica','normal');doc.text(rep.maitre||S.maitre||'',W-M-30,y+31,{align:'center'});
+ // Pied de page
+ const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(...GOLD);doc.setLineWidth(.3);doc.line(M,287,W-M,287);doc.setFontSize(7.5);doc.setTextColor(...GREY);doc.setFont('helvetica','normal');
+  doc.text(`EBNM · ${S.paroisse} · Rapport du culte du ${dateCourte(rep.date)}`,M,291.5);doc.text(`Page ${i} / ${n}`,W-M,291.5,{align:'right'})}
+ return doc;
+}
+function reportAnomalies(rep){const keep=R;R=rep;try{return anomalies()}finally{R=keep}}
+function pdfName(rep){return `Rapport_culte_${(S.paroisse||'paroisse').replace(/[^A-Za-z0-9]+/g,'_')}_${rep.date||''}.pdf`}
+
+/* ---------- Envoi ---------- */
+const waNum=()=>(dest().wa||'').replace(/[^0-9]/g,'');
+function resume(rep){const an=reportAnomalies(rep);const effT=(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0);
+ return `Rapport du culte du ${dateCourte(rep.date)} – ${S.paroisse}\nDébut ${rep.debut||'—'}, fin ${rep.fin||'—'}. Effectif : ${effT}.\nAnomalies : ${an.length?an.map(a=>a.msg).join(' ; '):'aucune'}.\nLe Maître du Culte : ${rep.maitre||S.maitre||''}`}
+async function sharePDF(rep,how){
+ const doc=makePDF(rep);const name=pdfName(rep);
+ const P=NATIVE&&window.Capacitor.Plugins;
+ if(P&&P.Filesystem&&P.Share){
+  const b64=doc.output('datauristring').split(',')[1];
+  const w=await P.Filesystem.writeFile({path:name,data:b64,directory:'CACHE'});
+  await P.Share.share({title:`Rapport du culte – ${S.paroisse} – ${dateCourte(rep.date)}`,text:resume(rep),files:[w.uri],dialogTitle:how==='wa'?`Choisissez WhatsApp${dest().wa?' puis '+dest().wa:''}`:how==='mail'?`Choisissez votre messagerie${dest().mail?' ('+dest().mail+')':''}`:'Partager le rapport PDF'});
+  return true}
+ try{const f=new File([doc.output('blob')],name,{type:'application/pdf'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name,text:resume(rep)});return true}}catch(e){}
+ return false;
+}
+function docPreview(rep){const an=reportAnomalies(rep);const tr=S.programme.reduce((a,p)=>a+(p.texte?0:Number((rep.rows[p.id]||{}).reel)||0),0);const effT=(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0);
+ return `<div class="hd">${logoSVG()}<div><b>${esc(S.eglise)}</b><span>${esc(S.paroisse)} — ${esc(S.ville)}</span></div></div><h3>RAPPORT DU CULTE</h3><div class="dt">${esc(dateLongue(rep.date))}</div>
+ <div class="kv"><div>Horaire<b>${esc(rep.debut||'—')}–${esc(rep.fin||'—')}</b></div><div>Durée<b>${tr?esc(fmtM(tr)):'—'}</b></div><div>Effectif<b>${effT}</b></div></div>
+ <div class="an">${an.length?`${an.length} anomalie(s) avec rappel du règlement`:'<span style="color:#1b7a48">Aucune anomalie</span>'}</div>`}
+function openSend(rep){
+ let doc;try{doc=makePDF(rep)}catch(e){toast(e.message);return}
+ const D=dest();const wa=waNum();const mailto=D.mail?`mailto:${encodeURIComponent(D.mail)}?${D.cc?'cc='+encodeURIComponent(D.cc)+'&':''}subject=${encodeURIComponent('Rapport du culte – '+S.paroisse+' – '+dateCourte(rep.date))}&body=${encodeURIComponent(resume(rep)+'\n\n(Rapport PDF en pièce jointe)')}`:'';
+ openSheet('Envoyer le rapport',`
+  <div class="docprev">${docPreview(rep)}</div>
+  <p class="note">📄 ${esc(pdfName(rep))} · ${doc.getNumberOfPages()} page(s) A4</p>
+  <div class="btns">
+   <button class="btn" id="sdWa" style="background:#1fa855;color:#fff">Envoyer sur WhatsApp${D.wa?`<span class="dest">· ${esc(D.wa)}</span>`:''}</button>
+   <button class="btn sec" id="sdMail">Envoyer par e-mail${D.mail?`<span class="dest">· ${esc(D.mail)}</span>`:''}</button>
+   <button class="btn sec" id="sdShare">Partager le PDF…</button>
+   <button class="btn sec" id="sdTxt">Copier le texte du rapport</button>
+  </div>
+  <p class="note" id="sdNote">${!D.wa&&!D.mail?"Aucun destinataire n'est enregistré. Un administrateur peut les ajouter dans Réglages › Espace administrateur.":''}</p>`,()=>{
+  const fallback=()=>$('#sdNote').innerHTML=NATIVE?"Le partage n'a pas pu s'ouvrir.":"Dans le navigateur, le PDF s'affiche ci-dessus. L'envoi direct du fichier PDF se fait depuis l'application installée sur le téléphone.";
+  $('#sdWa').onclick=async()=>{if(!D.wa&&!NATIVE){toast('Aucun numéro WhatsApp enregistré');return}
+   const ok=await sharePDF(rep,'wa').catch(()=>false);
+   if(!ok){fallback();if(wa)location.href=`https://wa.me/${wa}?text=${encodeURIComponent(resume(rep))}`}};
+  $('#sdMail').onclick=async()=>{const ok=await sharePDF(rep,'mail').catch(()=>false);if(!ok){fallback();if(mailto)location.href=mailto;else toast('Aucune adresse e-mail enregistrée')}};
+  $('#sdShare').onclick=async()=>{const ok=await sharePDF(rep,'share').catch(()=>false);if(!ok)fallback()};
+  $('#sdTxt').onclick=()=>copyText(reportText(rep));
+ });
+}
+$('#btnSend').onclick=()=>openSend(R);
+
+/* ---------- Configuration centrale (commune à toutes les paroisses) ---------- */
+function dest(){const c=store.get('central',null);return {wa:(c&&c.wa)||S.wa||'',mail:(c&&c.mail)||S.mail||'',cc:(c&&c.cc)||S.cc||'',central:!!(c&&(c.wa||c.mail))}}
+function cfgState(){const c=store.get('central',null);const el=$('#cfgState');if(!el)return;
+ if(!S.cfgUrl){el.textContent="Sans configuration centrale, le numéro et l'e-mail ci-dessus valent pour ce téléphone seulement.";return}
+ el.textContent=c&&c.at?`Configuration centrale lue le ${new Date(c.at).toLocaleString('fr-FR')}. Elle remplace les valeurs de ce téléphone pour toutes les paroisses.`:"Configuration centrale pas encore lue (connexion Internet nécessaire)."}
+async function loadCentral(manual){
+ if(!S.cfgUrl){if(manual)toast("Ajoutez d'abord l'adresse de la configuration centrale");return}
+ try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
+  const r=await fetch(S.cfgUrl+(S.cfgUrl.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store',signal:ctl.signal});clearTimeout(t);
+  if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
+  const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',at:Date.now()};store.set('central',c);
+  if(manual)toast('Destinataires mis à jour : '+[c.wa,c.mail].filter(Boolean).join(' · '));
+ }catch(e){if(manual)toast("Configuration centrale injoignable. Les derniers destinataires connus restent utilisés.")}
+ if(curTab==='reglages')renderSettings();
+}
+$('#btnCfg').onclick=()=>loadCentral(true);
+
+/* ---------- Premier lancement ---------- */
+function needSetup(){return !S.paroisse}
+function showSetup(){$('#setupLogo').innerHTML=logoSVG();$('#suJour').value=S.jour;$('#suHeure').value=S.heure;$('#suMaitre').value=S.maitre||'';$('#setup').hidden=false}
+$('#suGo').onclick=()=>{const par=$('#suParoisse').value.trim();if(par.length<3){$('#suErr').textContent='Indiquez le nom de votre paroisse.';$('#suParoisse').focus();return}
+ S.paroisse=par;S.ville=$('#suVille').value.trim();S.maitre=$('#suMaitre').value.trim();S.jour=$('#suJour').value;S.heure=$('#suHeure').value||'09:00';saveS();
+ R.faitA=R.faitA||S.ville;R.maitre=R.maitre||S.maitre;saveDraft();
+ $('#setup').hidden=true;renderHead();bindReport();showTab('accueil');toast('Bienvenue, '+S.paroisse)};
+if(needSetup())showSetup();
+loadCentral(false);
+
+/* ---------- Démarrage ---------- */
+renderHead();bindReport();
+if(LN&&store.get('notifOn',false))scheduleNotifs(false);
+let t0='accueil';try{t0=sessionStorage.getItem('mdc_tab')||'accueil'}catch(e){}showTab(t0);
+if(chrono)showLive();
+try{const App=NATIVE&&window.Capacitor.Plugins.App;if(App)App.addListener('backButton',()=>{if(!$('#live').hidden)$('#lvMin').click();else if(!$('#sheet').hidden)closeSheet();else if(curTab!=='accueil')showTab('accueil');else App.exitApp()})}catch(e){}
+})();
+</script>

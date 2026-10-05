@@ -1,0 +1,8 @@
+{
+  "appId": "org.ebnm.maitreduculte",
+  "appName": "Maître du Culte",
+  "webDir": "www",
+  "plugins": {
+    "LocalNotifications": { "iconColor": "#1f4f8f" }
+  }
+}
