@@ -22,7 +22,7 @@ Chaque téléphone doit être approuvé par l'administration. Un téléphone non
    - ou dans l'application : Réglages → Espace administrateur → Paroisses et téléphones, puis coller le texte produit dans `config.json`.
 3. Dès qu'il a Internet, le téléphone se déverrouille tout seul.
 
-Retirer un téléphone : `--retirer`. Suspendre toute une paroisse : `--suspendre` (et `--reactiver`). Liste : `--liste`.
+Essai limité : `--essai 2` (le téléphone se bloque tout seul après 2 jours ; approuver à nouveau sans `--essai` rend l'accès définitif). Retirer un téléphone : `--retirer`. Suspendre toute une paroisse : `--suspendre` (et `--reactiver`). Liste : `--liste`.
 
 Sur place, l'administrateur peut aussi activer un téléphone avec son mot de passe (bouton « Administrateur » de l'écran d'attente).
 

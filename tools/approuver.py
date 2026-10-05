@@ -2,12 +2,13 @@
 """Approuver ou retirer un téléphone pour une paroisse dans config.json.
 
   python3 tools/approuver.py "Paroisse de Pika" A7K2-9QX4 [--ville Kikwit]
+  python3 tools/approuver.py "Paroisse de Pika" A7K2-9QX4 --essai 2   (essai de 2 jours)
   python3 tools/approuver.py "Paroisse de Pika" A7K2-9QX4 --retirer
   python3 tools/approuver.py "Paroisse de Pika" --suspendre | --reactiver
   python3 tools/approuver.py "Paroisse de Pika" --whatsapp "+243 8.."
   python3 tools/approuver.py --liste
 """
-import argparse, hashlib, json, os, re, sys
+import argparse, datetime, hashlib, json, os, re, sys
 
 CFG = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.json')
 
@@ -24,6 +25,7 @@ def main():
     ap.add_argument('--ville', default='')
     ap.add_argument('--whatsapp', help='numéro qui reçoit les rapports de cette paroisse')
     ap.add_argument('--retirer', action='store_true')
+    ap.add_argument('--essai', type=float, metavar='JOURS', help="approbation d'essai qui expire après JOURS jours")
     ap.add_argument('--suspendre', action='store_true')
     ap.add_argument('--reactiver', action='store_true')
     ap.add_argument('--liste', action='store_true')
@@ -36,6 +38,8 @@ def main():
         print('activation:', c.get('activation'))
         for p in ps:
             print(f"- {p['nom']} ({p.get('ville','')}) : {len(p.get('tel', []))} tél.{' · suspendue' if p.get('actif') is False else ''}")
+            for h, fin in (p.get('essai') or {}).items():
+                print(f"    essai {h[:8]}… jusqu'au {fin}")
         return
 
     if not a.paroisse:
@@ -59,6 +63,9 @@ def main():
             if not e or h not in e.get('tel', []):
                 sys.exit("Ce téléphone n'est pas approuvé pour cette paroisse.")
             e['tel'].remove(h)
+            (e.get('essai') or {}).pop(h, None)
+            if 'essai' in e and not e['essai']:
+                del e['essai']
         else:
             if not e:
                 e = {'nom': a.paroisse.strip(), 'ville': a.ville.strip(), 'actif': True, 'tel': []}
@@ -68,6 +75,14 @@ def main():
             e.setdefault('tel', [])
             if h not in e['tel']:
                 e['tel'].append(h)
+            if a.essai:
+                fin = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=a.essai)
+                e.setdefault('essai', {})[h] = fin.replace(microsecond=0).isoformat().replace('+00:00', 'Z')
+                print('Essai jusqu\'au', e['essai'][h], '(UTC)')
+            else:
+                (e.get('essai') or {}).pop(h, None)
+                if 'essai' in e and not e['essai']:
+                    del e['essai']
             c['activation'] = True
 
     order = ['demandes', 'whatsapp', 'email', 'cc', 'activation', 'paroisses']

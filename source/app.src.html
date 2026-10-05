@@ -805,7 +805,15 @@ function gateOn(){return !!central().activation}
 function acces(){return store.get('acces',null)}
 const sameName=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
 function findPar(nom){return parList().find(p=>sameName(p.nom,nom))}
-async function approved(nom){const e=findPar(nom);if(!e||e.actif===false)return false;const h=await telHash(devId());return (e.tel||[]).includes(h)}
+/* État de ce téléphone pour une paroisse : ok, essai (avec date de fin), expire, suspendue ou non.
+   « essai » dans config.json associe une empreinte à sa date de fin (ISO). */
+async function telState(nom){const e=findPar(nom);if(!e)return {st:'non'};if(e.actif===false)return {st:'suspendue'};
+ const h=await telHash(devId());if(!(e.tel||[]).includes(h))return {st:'non'};
+ const fin=e.essai&&e.essai[h];if(!fin)return {st:'ok'};
+ const t=Date.parse(fin);if(!isNaN(t)&&Date.now()>=t)return {st:'expire',fin:t};return {st:'essai',fin:t}}
+async function approved(nom){const x=await telState(nom);return x.st==='ok'||x.st==='essai'}
+const MSG_ETAT={expire:"La période d'essai de ce téléphone est terminée. Contactez l'administration pour continuer.",suspendue:"L'accès de cette paroisse a été suspendu par l'administration.",non:"Ce téléphone n'est plus approuvé pour cette paroisse."};
+function essaiToast(x){if(x&&x.st==='essai'&&!isNaN(x.fin)){const d=new Date(x.fin);toast("Version d'essai jusqu'au "+d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),4200)}}
 
 function showAccess(mode,msg){
  $('#accLogo').innerHTML=logoSVG();
@@ -849,7 +857,8 @@ $('#acCheck').onclick=async()=>{
  const ok=await loadCentral(false);
  b.disabled=false;b.textContent="Vérifier l'activation";
  const D=store.get('demande',null);if(!D)return;
- if(await approved(D.par)){unlock(D);return}
+ const x=await telState(D.par);if(x.st==='ok'||x.st==='essai'){unlock(D);essaiToast(x);return}
+ if(x.st==='expire'){$('#acMsg').style.color='var(--bad)';$('#acMsg').textContent=MSG_ETAT.expire;return}
  $('#acMsg').style.color='';$('#acMsg').textContent=ok?'Pas encore approuvé. Réessayez après la confirmation de l\'administration.':'Pas de connexion Internet. Réessayez plus tard.';
 };
 $('#acAdmin').onclick=()=>pwSheet('Activation par l\'administrateur','Réservé à l\'administrateur.',['Mot de passe administrateur'],async([pw])=>{
@@ -1055,14 +1064,20 @@ $('#suGo').onclick=()=>{const par=$('#suParoisse').value.trim();if(par.length<3)
  if(!gateOn()){if(needSetup())showSetup();return}
  const A=acces();
  if(A){
-  if(A.admin||await approved(A.par)){if(needSetup())showSetup();return}
-  const e=findPar(A.par);store.set('acces',null);
+  if(A.admin){if(needSetup())showSetup();return}
+  const x=await telState(A.par);
+  if(x.st==='ok'||x.st==='essai'){if(needSetup())showSetup();essaiToast(x);return}
+  store.set('acces',null);
   store.set('demande',{par:A.par,ville:S.ville,maitre:S.maitre,at:Date.now()});
-  showAccess('wait',e&&e.actif===false?"L'accès de cette paroisse a été suspendu par l'administration.":"Ce téléphone n'est plus approuvé pour cette paroisse.");return}
+  showAccess('wait',MSG_ETAT[x.st]);return}
  const D=store.get('demande',null);
- if(D){if(await approved(D.par)){unlock(D);return}showAccess('wait');return}
+ if(D){const x=await telState(D.par);if(x.st==='ok'||x.st==='essai'){unlock(D);essaiToast(x);return}showAccess('wait',x.st==='expire'?MSG_ETAT.expire:'');return}
  showAccess('choose');
 })();
+/* Un essai qui se termine pendant l'utilisation bloque l'application au retour sur l'écran. */
+document.addEventListener('visibilitychange',async()=>{
+ if(document.visibilityState!=='visible'||!gateOn())return;const A=acces();if(!A||A.admin)return;
+ const x=await telState(A.par);if(x.st==='expire'||x.st==='suspendue'||x.st==='non')location.reload()});
 
 /* ---------- Démarrage ---------- */
 renderHead();bindReport();
