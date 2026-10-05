@@ -11,18 +11,22 @@ Application du maître du culte pour les paroisses de l'Église Bon Nouveau Mess
 | `source/` | Source de l'application (`app.src.html`), règlement intérieur (`reglement.json`), logo et bibliothèques PDF. |
 | `config.json` | Numéro WhatsApp et e-mail qui reçoivent les rapports de toutes les paroisses. |
 
-## Donner un accès à une paroisse
+## Activer le téléphone d'une paroisse
 
-Chaque paroisse a son propre code d'accès. Sans le bon code, l'application ne s'ouvre pas.
+Chaque téléphone doit être approuvé par l'administration. Un téléphone non approuvé reste bloqué, même si on lui donne le nom d'une paroisse déjà active.
 
-1. Dans l'application, ouvrez **Réglages → Espace administrateur → Gérer les paroisses**.
-2. Ajoutez la paroisse. Un code est proposé ; communiquez-le au maître du culte.
-3. Touchez **Générer le fichier**, copiez le texte et collez-le dans `config.json` ici sur GitHub.
-4. Au premier lancement, le maître du culte choisit sa paroisse et saisit le code. Il ne lui est plus redemandé ensuite.
+1. Le maître du culte installe l'application, choisit sa paroisse et indique son nom. L'application affiche « En attente d'activation » avec l'identifiant du téléphone (ex. `A7K2-9QX4`) et envoie la demande sur WhatsApp au numéro de `config.json`.
+2. L'administrateur approuve le téléphone :
+   - en transférant la demande à Claude dans le projet ;
+   - ou avec `python3 tools/approuver.py "Paroisse de Pika" A7K2-9QX4 --ville Kikwit` ;
+   - ou dans l'application : Réglages → Espace administrateur → Paroisses et téléphones, puis coller le texte produit dans `config.json`.
+3. Dès qu'il a Internet, le téléphone se déverrouille tout seul.
 
-Le fichier publié ne contient jamais le code lui-même, seulement son empreinte (PBKDF2, 150 000 tours).
+Retirer un téléphone : `--retirer`. Suspendre toute une paroisse : `--suspendre` (et `--reactiver`). Liste : `--liste`.
 
-Pour retirer l'accès d'une paroisse, suspendez-la puis republiez le fichier : son application se bloque à la prochaine ouverture avec Internet. Tant que `paroisses` est vide, l'application fonctionne sans code.
+Sur place, l'administrateur peut aussi activer un téléphone avec son mot de passe (bouton « Administrateur » de l'écran d'attente).
+
+`config.json` ne contient pas les identifiants eux-mêmes, seulement leur empreinte. Avec `"activation": false`, l'application s'ouvre sans approbation.
 
 ## Changer le numéro ou l'e-mail de réception
 

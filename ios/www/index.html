@@ -126,9 +126,9 @@ input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid v
 mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 
 /* Sheet */
-.scrim{position:fixed;inset:0;z-index:30;background:rgba(5,10,20,.5);opacity:0;transition:opacity .2s}
+.scrim{position:fixed;inset:0;z-index:91;background:rgba(5,10,20,.5);opacity:0;transition:opacity .2s}
 .scrim.on{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;background:var(--surface);border-radius:22px 22px 0 0;max-height:92%;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s ease;max-width:640px;margin:0 auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:92;background:var(--surface);border-radius:22px 22px 0 0;max-height:92%;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .25s ease;max-width:640px;margin:0 auto}
 .sheet.on{transform:none}
 .sheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 0;flex:none}
 .sheet .sh{display:flex;align-items:center;gap:10px;padding:10px 16px 6px;flex:none}
@@ -158,7 +158,7 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 .live .acts .end{background:rgba(255,255,255,.12);color:#fff}
 .live .acts .next{background:#e6b65a;color:#1a1205}
 
-.toast{position:fixed;left:16px;right:16px;bottom:calc(var(--tabh) + 16px + env(safe-area-inset-bottom,0px));z-index:50;background:#141c2c;color:#fff;padding:12px 16px;border-radius:14px;font-size:.95rem;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:600px;margin:0 auto}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(var(--tabh) + 16px + env(safe-area-inset-bottom,0px));z-index:95;background:#141c2c;color:#fff;padding:12px 16px;border-radius:14px;font-size:.95rem;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:600px;margin:0 auto}
 /* Premier lancement */
 .setup{position:fixed;inset:0;z-index:90;background:var(--bg);overflow:auto;padding:calc(24px + env(safe-area-inset-top,0px)) 20px calc(24px + env(safe-area-inset-bottom,0px))}
 .setup .in{max-width:480px;margin:0 auto}
@@ -199,13 +199,24 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 <div class="splash" id="splash"><span id="splashLogo"></span><div class="nm">Maître du Culte</div><div class="eg">Eglise Bon Nouveau Message (KCC)</div></div>
 <div class="setup" id="access" hidden><div class="in">
   <span id="accLogo"></span>
-  <h2>Accès de la paroisse</h2>
-  <p class="lead">Choisissez votre paroisse, puis saisissez le code d'accès remis par l'administration.</p>
-  <label class="lbl" for="acSel">Paroisse *</label><select class="input" id="acSel"></select>
-  <label class="lbl" for="acCode">Code d'accès *</label><input class="input" id="acCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ex. KCC-4F7A2B1C">
-  <p class="note" id="acErr" style="color:var(--bad);min-height:1.2em"></p>
-  <div class="btns"><button class="btn" id="acGo">Activer</button></div>
-  <p class="note" id="acState" style="text-align:center">Le code n'est demandé qu'une seule fois sur ce téléphone.</p>
+  <div id="acChoose">
+   <h2>Activation</h2>
+   <p class="lead">Chaque téléphone doit être activé par l'administration avant de servir pour une paroisse.</p>
+   <label class="lbl" for="acSel">Paroisse *</label><select class="input" id="acSel"></select>
+   <div id="acAutreBox" hidden><label class="lbl" for="acAutre">Nom de la paroisse *</label><input class="input" id="acAutre" placeholder="Ex. Paroisse de Pika" autocomplete="off"></div>
+   <label class="lbl" for="acVille">Ville</label><input class="input" id="acVille" placeholder="Ex. Muanda">
+   <label class="lbl" for="acMaitre">Votre nom (maître du culte) *</label><input class="input" id="acMaitre" placeholder="Nom complet">
+   <p class="note" id="acErr" style="color:var(--bad);min-height:1.2em"></p>
+   <div class="btns"><button class="btn" id="acAsk">Demander l'activation</button></div>
+  </div>
+  <div id="acWait" hidden>
+   <h2>En attente d'activation</h2>
+   <p class="lead" id="acWaitTxt"></p>
+   <div class="card" style="text-align:center;padding:16px;margin:12px 0"><div class="note" style="margin:0">Identifiant de ce téléphone</div><div class="num" id="acDev" style="font-size:1.9rem;font-weight:800;letter-spacing:2px;margin-top:4px"></div></div>
+   <p class="note" id="acMsg" style="min-height:1.2em"></p>
+   <div class="btns"><button class="btn" id="acSendWa" style="background:#1fa855;color:#fff">Envoyer la demande sur WhatsApp</button><button class="btn sec" id="acCheck">Vérifier l'activation</button></div>
+   <div class="btns two"><button class="btn sec" id="acChange">Changer de paroisse</button><button class="btn sec" id="acAdmin">Administrateur</button></div>
+  </div>
 </div></div>
 <div class="setup" id="setup" hidden><div class="in">
   <span id="setupLogo"></span>
@@ -349,8 +360,8 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 
     <div class="sec-title">Programme · temps prévus (min)</div>
     <div class="card list" id="progEdit"></div>
-    <div class="sec-title">Paroisses et codes d'accès</div>
-    <div class="card list"><button class="rowi" id="btnPars"><span class="ic">⛪</span><span class="main"><span class="t">Gérer les paroisses</span><span class="s" id="parsSub">Codes d'accès et fichier à publier</span></span><span class="chev">›</span></button></div>
+    <div class="sec-title">Paroisses et téléphones</div>
+    <div class="card list"><button class="rowi" id="btnPars"><span class="ic">⛪</span><span class="main"><span class="t">Paroisses et téléphones</span><span class="s" id="parsSub">Téléphones activés, approbation</span></span><span class="chev">›</span></button></div>
     <div class="sec-title">Sécurité</div>
     <div class="card list"><button class="rowi" id="btnPin"><span class="ic">#</span><span class="main"><span class="t">Changer le mot de passe administrateur</span><span class="s">Pour ce téléphone</span></span><span class="chev">›</span></button><button class="rowi" id="btnLock"><span class="ic">🔒</span><span class="main"><span class="t">Fermer l'espace administrateur</span></span></button></div>
     </div>
@@ -788,90 +799,110 @@ $('#btnAdmin').onclick=()=>{if(adminOpen){setAdmin(false);return}pwSheet('Espace
 $('#btnLock').onclick=()=>{setAdmin(false);window.scrollTo(0,0);toast('Espace administrateur fermé')};
 $('#btnPin').onclick=()=>pwSheet('Changer le mot de passe','Au moins 8 caractères.',['Nouveau mot de passe','Confirmer le mot de passe'],async([a,b])=>{a=a.trim();if(a.length<8)return 'Au moins 8 caractères';if(a!==b.trim())return 'Les deux mots de passe sont différents';store.set('adminHash',await hashPw(a));closeSheet();toast('Mot de passe administrateur changé')});
 
-/* ---------- Accès par paroisse ----------
-   Chaque paroisse reçoit un code. Le fichier publié ne contient que l'empreinte du code
-   (PBKDF2, 150 000 tours) : le code lui-même ne circule jamais sur Internet. */
-const CODE_ROUNDS=150000;
-async function hashCode(nom,code){
- const enc=new TextEncoder();
- const k=await crypto.subtle.importKey('raw',enc.encode(String(code).trim().toUpperCase()),'PBKDF2',false,['deriveBits']);
- const b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:enc.encode('mdc-par:'+String(nom).trim().toLowerCase()),iterations:CODE_ROUNDS,hash:'SHA-256'},k,256);
- return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
-}
-function newCode(){return 'KCC-'+[...crypto.getRandomValues(new Uint8Array(4))].map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join('')}
-function parList(){const c=store.get('central',null);return (c&&Array.isArray(c.paroisses))?c.paroisses:[]}
+/* ---------- Activation par téléphone ----------
+   Chaque téléphone a un identifiant tiré au hasard à la première ouverture.
+   L'administration approuve un téléphone en ajoutant l'empreinte de cet identifiant
+   dans config.json (liste « tel » de la paroisse). Un autre téléphone reste bloqué. */
+const ALPH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function devId(){let d=store.get('devid',null);
+ if(!d){const r=crypto.getRandomValues(new Uint8Array(8));const c=[...r].map(b=>ALPH[b%ALPH.length]).join('');d=c.slice(0,4)+'-'+c.slice(4);store.set('devid',d)}
+ return d}
+async function telHash(id){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mdc-tel:'+String(id).trim().toUpperCase()));return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,24)}
+function central(){return store.get('central',null)||{}}
+function parList(){const c=central();return Array.isArray(c.paroisses)?c.paroisses:[]}
+function gateOn(){return !!central().activation}
 function acces(){return store.get('acces',null)}
+const sameName=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
+function findPar(nom){return parList().find(p=>sameName(p.nom,nom))}
+async function approved(nom){const e=findPar(nom);if(!e||e.actif===false)return false;const h=await telHash(devId());return (e.tel||[]).includes(h)}
 
-function showAccess(msg){
- const L=parList();
+function showAccess(mode,msg){
  $('#accLogo').innerHTML=logoSVG();
- $('#acSel').innerHTML='<option value="">— Choisissez votre paroisse —</option>'+L.filter(p=>p.actif!==false)
-   .map(p=>`<option value="${esc(p.nom)}">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}</option>`).join('');
- $('#acErr').textContent=msg||'';
+ const D=store.get('demande',null);
+ if(mode==='wait'&&D){
+  $('#acChoose').hidden=true;$('#acWait').hidden=false;
+  $('#acWaitTxt').textContent=`Demande pour « ${D.par} ». Envoyez-la à l'administration ; ce téléphone se déverrouillera tout seul dès qu'elle sera approuvée.`;
+  $('#acDev').textContent=devId();$('#acMsg').textContent=msg||'';$('#acMsg').style.color=msg?'var(--bad)':'';
+ }else{
+  $('#acWait').hidden=true;$('#acChoose').hidden=false;
+  const L=parList().filter(p=>p.actif!==false);
+  $('#acSel').innerHTML='<option value="">— Choisissez votre paroisse —</option>'+L.map(p=>`<option value="${esc(p.nom)}">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}</option>`).join('')+'<option value="__autre">Autre paroisse…</option>';
+  if(D){$('#acSel').value=findPar(D.par)?findPar(D.par).nom:'__autre';$('#acAutre').value=findPar(D.par)?'':D.par;$('#acVille').value=D.ville||'';$('#acMaitre').value=D.maitre||''}
+  else{$('#acMaitre').value=S.maitre||''}
+  $('#acAutreBox').hidden=$('#acSel').value!=='__autre';
+  $('#acErr').textContent=msg||'';
+ }
  $('#access').hidden=false;
 }
-$('#acGo').onclick=async()=>{
- const nom=$('#acSel').value, code=$('#acCode').value.trim();
- if(!nom){$('#acErr').textContent='Choisissez votre paroisse.';return}
- if(!code){$('#acErr').textContent="Saisissez le code d'accès.";return}
- const e=parList().find(p=>p.nom===nom);
- if(!e){$('#acErr').textContent='Paroisse introuvable. Actualisez la liste.';return}
- const btn=$('#acGo');btn.disabled=true;const lab=btn.textContent;btn.textContent='Vérification…';
- let h='';try{h=await hashCode(nom,code)}catch(err){}
- btn.disabled=false;btn.textContent=lab;
- if(h!==e.h){$('#acErr').textContent="Code d'accès incorrect.";buzz();return}
- store.set('acces',{par:nom,h:h,at:Date.now()});
- S.paroisse=nom;if(e.ville)S.ville=e.ville;saveS();
- $('#access').hidden=true;
- if(needSetup2())showSetup();else{renderHead();showTab('accueil');toast('Bienvenue, '+nom)}
+$('#acSel').onchange=()=>{$('#acAutreBox').hidden=$('#acSel').value!=='__autre';const e=findPar($('#acSel').value);if(e&&e.ville)$('#acVille').value=e.ville};
+$('#acAsk').onclick=()=>{
+ const v=$('#acSel').value;const par=v==='__autre'?$('#acAutre').value.trim():v;
+ if(!v){$('#acErr').textContent='Choisissez votre paroisse.';return}
+ if(par.length<3){$('#acErr').textContent='Indiquez le nom de la paroisse.';$('#acAutre').focus();return}
+ const maitre=$('#acMaitre').value.trim();if(maitre.length<2){$('#acErr').textContent='Indiquez votre nom.';$('#acMaitre').focus();return}
+ store.set('demande',{par:par,ville:$('#acVille').value.trim(),maitre:maitre,at:Date.now()});
+ showAccess('wait');sendRequest();
 };
-
-/* ---------- Administration des paroisses ---------- */
-function pars(){return store.get('pars',[])}
-function savePars(v){store.set('pars',v);if($('#parsSub'))$('#parsSub').textContent=v.length?v.length+' paroisse'+(v.length>1?'s':'')+" · fichier à publier":"Codes d'accès et fichier à publier"}
-async function cfgJSON(){
- const out=[];for(const p of pars())out.push({nom:p.nom,ville:p.ville||'',actif:p.actif!==false,h:await hashCode(p.nom,p.code)});
- return JSON.stringify({whatsapp:S.wa||'',email:S.mail||'',cc:S.cc||'',paroisses:out},null,2);
+function requestText(){const D=store.get('demande',{})||{};
+ return `Demande d'activation · Maître du Culte\nParoisse : ${D.par||''}\nVille : ${D.ville||''}\nMaître du culte : ${D.maitre||''}\nTéléphone : ${devId()}`}
+async function sendRequest(){
+ const txt=requestText();const wa=(dest().wa||'').replace(/\D/g,'');
+ if(wa){location.href=`https://wa.me/${wa}?text=${encodeURIComponent(txt)}`;return}
+ try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){}
+ try{await navigator.clipboard.writeText(txt);toast('Demande copiée : envoyez-la à l\'administration')}catch(e){toast('Envoyez à l\'administration l\'identifiant affiché')}
 }
+$('#acSendWa').onclick=sendRequest;
+$('#acChange').onclick=()=>showAccess('choose');
+$('#acCheck').onclick=async()=>{
+ const b=$('#acCheck');b.disabled=true;b.textContent='Vérification…';
+ const ok=await loadCentral(false);
+ b.disabled=false;b.textContent="Vérifier l'activation";
+ const D=store.get('demande',null);if(!D)return;
+ if(await approved(D.par)){unlock(D);return}
+ $('#acMsg').style.color='';$('#acMsg').textContent=ok?'Pas encore approuvé. Réessayez après la confirmation de l\'administration.':'Pas de connexion Internet. Réessayez plus tard.';
+};
+$('#acAdmin').onclick=()=>pwSheet('Activation par l\'administrateur','Réservé à l\'administrateur.',['Mot de passe administrateur'],async([pw])=>{
+ if(await hashPw(pw.trim())!==adminHash())return 'Mot de passe incorrect';
+ const D=store.get('demande',null);closeSheet();unlock(D,true)});
+function unlock(D,admin){
+ const e=findPar(D.par)||{};
+ S.paroisse=e.nom||D.par;S.ville=e.ville||D.ville||S.ville;S.maitre=D.maitre||S.maitre;saveS();
+ R.faitA=R.faitA||S.ville;R.maitre=R.maitre||S.maitre;saveDraft();
+ store.set('acces',{par:S.paroisse,admin:!!admin,at:Date.now()});store.set('demande',null);
+ $('#access').hidden=true;buzz();showSetup();toast('Téléphone activé pour '+S.paroisse,3200);
+}
+
+/* ---------- Administration : paroisses et téléphones ---------- */
+function cfgText(c){return JSON.stringify({whatsapp:c.wa||'',email:c.mail||'',cc:c.cc||'',activation:!!c.activation,paroisses:c.paroisses||[]},null,2)}
 function parsSheet(){
- openSheet('Paroisses et codes',`<div id="parsList"></div>
-  <div class="sec-title">Ajouter une paroisse</div>
+ openSheet('Paroisses et téléphones',`<p class="note" style="margin-top:0">Ce téléphone : <b class="num">${esc(devId())}</b> · Activation ${gateOn()?'<b>obligatoire</b>':'désactivée'}</p>
+  <div id="parsList"></div>
+  <div class="sec-title">Approuver ou retirer un téléphone</div>
+  <p class="note">Le plus simple : transférez la demande WhatsApp à Claude dans le projet, il s'en occupe. Sinon, saisissez-la ici puis publiez le texte obtenu dans <b>config.json</b> sur GitHub.</p>
   <div class="card list">
-   <div class="field"><label for="npNom">Paroisse</label><input id="npNom" placeholder="Ex. Paroisse de Pika"></div>
-   <div class="field"><label for="npVille">Ville</label><input id="npVille" placeholder="Ex. Muanda"></div>
-   <div class="field"><label for="npCode">Code</label><input id="npCode" autocapitalize="characters" spellcheck="false"></div>
+   <div class="field"><label for="apPar">Paroisse</label><input id="apPar" placeholder="Ex. Paroisse de Pika"></div>
+   <div class="field"><label for="apVille">Ville</label><input id="apVille"></div>
+   <div class="field"><label for="apDev">Téléphone</label><input id="apDev" placeholder="A7K2-9QX4" autocapitalize="characters" spellcheck="false"></div>
   </div>
-  <p class="note" id="npErr" style="color:var(--bad);min-height:1.2em"></p>
-  <div class="btns two"><button class="btn sec" id="npGen">Nouveau code</button><button class="btn" id="npAdd">Ajouter</button></div>
-  <div class="sec-title">Fichier à publier</div>
-  <p class="note">Touchez « Générer », copiez le texte, puis collez-le dans <b>config.json</b> sur GitHub. Le code lui-même n'y figure pas.</p>
-  <textarea class="input" id="parsOut" style="font-family:monospace;font-size:12px" placeholder="Touchez « Générer »"></textarea>
-  <div class="btns"><button class="btn sec" id="parsGen">Générer le fichier</button></div>`,()=>{
-  const paint=()=>{
-   const L=pars();
-   $('#parsList').innerHTML=L.length?'<div class="card list">'+L.map((p,i)=>`<div class="field"><label style="font-size:.95rem">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}<br><span class="note" style="margin:0">Code : <b>${esc(p.code)}</b>${p.actif===false?' · désactivée':''}</span></label><span style="display:flex;gap:6px"><button class="btn sec" data-pt="${i}" style="padding:6px 10px">${p.actif===false?'Activer':'Suspendre'}</button><button class="btn sec" data-pd="${i}" style="padding:6px 10px">Retirer</button></span></div>`).join('')+'</div>':'<p class="note">Aucune paroisse pour le moment.</p>';
-   $$('[data-pt]').forEach(b=>b.onclick=()=>{const L=pars();L[+b.dataset.pt].actif=L[+b.dataset.pt].actif===false;savePars(L);paint()});
-   $$('[data-pd]').forEach(b=>b.onclick=function(){confirmBtn(this,'Confirmer',()=>{const L=pars();L.splice(+b.dataset.pd,1);savePars(L);paint()})});
-  };
+  <p class="note" id="apErr" style="color:var(--bad);min-height:1.2em"></p>
+  <div class="btns two"><button class="btn sec" id="apDel">Retirer</button><button class="btn" id="apAdd">Approuver</button></div>
+  <textarea class="input" id="parsOut" style="font-family:monospace;font-size:12px;margin-top:10px" hidden></textarea>`,()=>{
+  let C=JSON.parse(JSON.stringify(central()));C.paroisses=C.paroisses||[];
+  const paint=()=>{const L=C.paroisses;
+   $('#parsList').innerHTML=L.length?'<div class="card list">'+L.map(p=>`<div class="field"><label style="font-size:.95rem">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}</label><span class="note" style="margin:0">${(p.tel||[]).length} tél.${p.actif===false?' · suspendue':''}</span></div>`).join('')+'</div>':'<p class="note">Aucune paroisse publiée pour le moment.</p>'};
   paint();
-  $('#npCode').value=newCode();
-  $('#npGen').onclick=()=>{$('#npCode').value=newCode()};
-  $('#npAdd').onclick=()=>{
-   const nom=$('#npNom').value.trim(),code=$('#npCode').value.trim();
-   if(nom.length<3){$('#npErr').textContent='Indiquez le nom de la paroisse.';return}
-   if(code.length<6){$('#npErr').textContent='Le code doit avoir au moins 6 caractères.';return}
-   const L=pars();
-   if(L.some(p=>p.nom.toLowerCase()===nom.toLowerCase())){$('#npErr').textContent='Cette paroisse est déjà dans la liste.';return}
-   L.push({nom:nom,ville:$('#npVille').value.trim(),code:code,actif:true});savePars(L);
-   $('#npErr').textContent='';$('#npNom').value='';$('#npVille').value='';$('#npCode').value=newCode();
-   paint();toast('Paroisse ajoutée');
-  };
-  $('#parsGen').onclick=async()=>{
-   const b=$('#parsGen');b.disabled=true;b.textContent='Calcul…';
-   try{$('#parsOut').value=await cfgJSON();$('#parsOut').select();toast('Copiez le texte, puis collez-le dans config.json')}
-   catch(e){toast('Génération impossible')}
-   b.disabled=false;b.textContent='Générer le fichier';
-  };
+  const edit=async add=>{
+   const nom=$('#apPar').value.trim(),dev=$('#apDev').value.trim().toUpperCase();
+   if(nom.length<3){$('#apErr').textContent='Indiquez la paroisse.';return}
+   if(!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(dev)){$('#apErr').textContent='Identifiant attendu sous la forme A7K2-9QX4.';return}
+   const h=await telHash(dev);let e=C.paroisses.find(p=>sameName(p.nom,nom));
+   if(add){if(!e){e={nom:nom,ville:$('#apVille').value.trim(),actif:true,tel:[]};C.paroisses.push(e)}
+    e.tel=e.tel||[];if(!e.tel.includes(h))e.tel.push(h);C.activation=true}
+   else{if(!e||!(e.tel||[]).includes(h)){$('#apErr').textContent='Ce téléphone n\'est pas approuvé pour cette paroisse.';return}e.tel=e.tel.filter(x=>x!==h)}
+   $('#apErr').textContent='';paint();
+   const o=$('#parsOut');o.hidden=false;o.value=cfgText(C);o.select();
+   toast('Copiez le texte et collez-le dans config.json',3200)};
+  $('#apAdd').onclick=()=>edit(true);$('#apDel').onclick=()=>edit(false);
  })}
 $('#btnPars').onclick=parsSheet;
 
@@ -944,7 +975,7 @@ function makePDF(rep){
  doc.setFont('helvetica','normal');doc.text(rep.maitre||S.maitre||'',W-M-30,y+31,{align:'center'});
  // Pied de page
  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(...GOLD);doc.setLineWidth(.3);doc.line(M,287,W-M,287);doc.setFontSize(7.5);doc.setTextColor(...GREY);doc.setFont('helvetica','normal');
-  doc.text(`EBNM · ${S.paroisse} · Rapport du culte du ${dateCourte(rep.date)}`,M,291.5);doc.text(`Page ${i} / ${n}`,W-M,291.5,{align:'right'})}
+  doc.text(`EBNM · ${S.paroisse} · Rapport du culte du ${dateCourte(rep.date)} · Tél. ${devId()}`,M,291.5);doc.text(`Page ${i} / ${n}`,W-M,291.5,{align:'right'})}
  return doc;
 }
 function reportAnomalies(rep){const keep=R;R=rep;try{return anomalies()}finally{R=keep}}
@@ -999,14 +1030,16 @@ function cfgState(){const c=store.get('central',null);const el=$('#cfgState');if
  if(!S.cfgUrl){el.textContent="Sans configuration centrale, le numéro et l'e-mail ci-dessus valent pour ce téléphone seulement.";return}
  el.textContent=c&&c.at?`Configuration centrale lue le ${new Date(c.at).toLocaleString('fr-FR')}. Elle remplace les valeurs de ce téléphone pour toutes les paroisses.`:"Configuration centrale pas encore lue (connexion Internet nécessaire)."}
 async function loadCentral(manual){
+ loadCentral.ok=false;
  if(!S.cfgUrl){if(manual)toast("Ajoutez d'abord l'adresse de la configuration centrale");return}
  try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
   const r=await fetch(S.cfgUrl+(S.cfgUrl.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store',signal:ctl.signal});clearTimeout(t);
   if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
-  const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',paroisses:Array.isArray(j.paroisses)?j.paroisses:[],at:Date.now()};store.set('central',c);
+  const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',activation:!!j.activation,paroisses:Array.isArray(j.paroisses)?j.paroisses:[],at:Date.now()};store.set('central',c);loadCentral.ok=true;
   if(manual)toast('Destinataires mis à jour : '+[c.wa,c.mail].filter(Boolean).join(' · '));
  }catch(e){if(manual)toast("Configuration centrale injoignable. Les derniers destinataires connus restent utilisés.")}
  if(curTab==='reglages')renderSettings();
+ return loadCentral.ok;
 }
 $('#btnCfg').onclick=()=>loadCentral(true);
 
@@ -1015,23 +1048,26 @@ function needSetup(){return !S.paroisse}
 function needSetup2(){return !S.maitre}
 function showSetup(){$('#setupLogo').innerHTML=logoSVG();$('#suJour').value=S.jour;$('#suHeure').value=S.heure;$('#suMaitre').value=S.maitre||'';
  const a=acces();const inp=$('#suParoisse');
- if(a){inp.value=S.paroisse;inp.readOnly=true;$('#suVille').value=S.ville||'';$('#setupLead').textContent='Votre paroisse est activée. Complétez votre nom et l\'horaire du culte.'}
+ if(a){inp.value=S.paroisse;inp.readOnly=true;$('#suVille').value=S.ville||'';$('#setupLead').textContent='Ce téléphone est activé. Vérifiez votre nom et l\'horaire du culte.'}
  $('#setup').hidden=false}
 $('#suGo').onclick=()=>{const par=$('#suParoisse').value.trim();if(par.length<3){$('#suErr').textContent='Indiquez le nom de votre paroisse.';$('#suParoisse').focus();return}
  S.paroisse=par;S.ville=$('#suVille').value.trim();S.maitre=$('#suMaitre').value.trim();S.jour=$('#suJour').value;S.heure=$('#suHeure').value||'09:00';saveS();
  R.faitA=R.faitA||S.ville;R.maitre=R.maitre||S.maitre;saveDraft();
  $('#setup').hidden=true;renderHead();bindReport();showTab('accueil');toast('Bienvenue, '+S.paroisse)};
-/* Contrôle d'accès : si l'administration a publié une liste de paroisses,
-   l'application ne s'ouvre qu'avec le code de la paroisse. Sans liste publiée,
-   l'ancien premier lancement reste en place. */
+/* Contrôle d'accès : quand config.json porte « activation: true », seul un téléphone
+   approuvé pour sa paroisse peut ouvrir l'application. Sinon, premier lancement classique. */
 (async()=>{
  await loadCentral(false);
- const L=parList();let A=acces();
- if(A&&L.length){const e=L.find(p=>p.nom===A.par);
-  if(!e||e.actif===false||e.h!==A.h){store.set('acces',null);A=null;
-   showAccess(e&&e.actif===false?"L'accès de cette paroisse a été suspendu par l'administration.":"Le code de votre paroisse a changé. Saisissez le nouveau code.");return}}
- if(!A&&L.length){showAccess();return}
- if(needSetup())showSetup();
+ if(!gateOn()){if(needSetup())showSetup();return}
+ const A=acces();
+ if(A){
+  if(A.admin||await approved(A.par)){if(needSetup())showSetup();return}
+  const e=findPar(A.par);store.set('acces',null);
+  store.set('demande',{par:A.par,ville:S.ville,maitre:S.maitre,at:Date.now()});
+  showAccess('wait',e&&e.actif===false?"L'accès de cette paroisse a été suspendu par l'administration.":"Ce téléphone n'est plus approuvé pour cette paroisse.");return}
+ const D=store.get('demande',null);
+ if(D){if(await approved(D.par)){unlock(D);return}showAccess('wait');return}
+ showAccess('choose');
 })();
 
 /* ---------- Démarrage ---------- */
