@@ -185,12 +185,14 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 .docprev .kv b{display:block;font-size:1rem;color:#141c2c}
 .docprev .an{margin-top:10px;font-size:.8rem;color:#a35f00}
 .dest{font-size:.85rem;opacity:.8;font-weight:500}
+.langs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:4px 0 10px}
 @media (prefers-reduced-motion:reduce){.sheet,.scrim,.switch span,.switch span::after{transition:none}}
 </style>
 
 <div class="splash" id="splash"><span id="splashLogo"></span><div class="nm">Maître du Culte</div><div class="eg">Eglise Bon Nouveau Message (KCC)</div></div>
 <div class="setup" id="access" hidden><div class="in">
   <span id="accLogo"></span>
+  <div class="chips langs" data-langs></div>
   <div id="acChoose">
    <h2>Activation</h2>
    <p class="lead">Chaque téléphone doit être activé par l'administration avant de servir pour une paroisse.</p>
@@ -212,6 +214,7 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 </div></div>
 <div class="setup" id="setup" hidden><div class="in">
   <span id="setupLogo"></span>
+  <div class="chips langs" data-langs></div>
   <h2>Bienvenue</h2>
   <p class="lead" id="setupLead">Avant de commencer, indiquez votre paroisse. Elle figurera sur tous vos rapports.</p>
   <label class="lbl" for="suParoisse">Nom de la paroisse *</label><input class="input" id="suParoisse" placeholder="Ex. Paroisse de Pika – Pende" autocomplete="off">
@@ -312,6 +315,8 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 
   <!-- REGLAGES -->
   <section id="s-reglages" hidden>
+    <div class="sec-title">Langue</div>
+    <div class="chips langs" data-langs style="justify-content:flex-start"></div>
     <div class="sec-title">Rappels</div>
     <div class="card list">
       <div class="field"><label for="sJour">Jour du culte</label><select id="sJour"><option value="6">Samedi</option><option value="0">Dimanche</option><option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option><option value="4">Jeudi</option><option value="5">Vendredi</option></select></div>
@@ -392,7 +397,7 @@ mark{background:var(--gold-soft);color:inherit;border-radius:3px}
 
 <!--__PDFLIBS__-->
 <script>
-const REGLEMENT=/*__REGLEMENT__*/[];
+const REGL={fr:/*__REGLEMENT__*/[],pt:/*__REGLEMENT_PT__*/[],en:/*__REGLEMENT_EN__*/[]};
 </script>
 <script>
 (function(){
@@ -400,6 +405,25 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const store={get(k,d){try{const v=localStorage.getItem('mdc_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('mdc_'+k,JSON.stringify(v))}catch(e){}}};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const uid=()=>Math.random().toString(36).slice(2,9);
+/* ---------- Langues ----------
+   Les textes sont écrits en français dans le code ; tx() renvoie leur traduction (I18N, injecté à la construction).
+   {0}, {1}… sont remplacés par les valeurs passées. Changer de langue recharge l'application. */
+const LANGS={fr:'Français',pt:'Português',en:'English'};
+let LANG=store.get('lang','fr');if(!LANGS[LANG])LANG='fr';
+const LOC={fr:'fr-FR',pt:'pt-PT',en:'en-GB'}[LANG];
+const I18N=/*__I18N__*/{};
+function tx(s,...a){let r=(LANG!=='fr'&&I18N[LANG]&&I18N[LANG][s])||s;return a.length?String(r).replace(/\{(\d+)\}/g,(m,i)=>a[i]??''):r}
+const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+const REGLEMENT=(REGL[LANG]&&REGL[LANG].length)?REGL[LANG]:REGL.fr;
+document.documentElement.lang=LANG;
+function i18nDOM(root){if(LANG==='fr')return;const D=I18N[LANG]||{};
+ const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let n;
+ while((n=w.nextNode())){const pn=n.parentNode;if(!pn||/^(SCRIPT|STYLE)$/.test(pn.nodeName))continue;const v=n.nodeValue,k=v.trim();if(k&&D[k])n.nodeValue=v.replace(k,D[k])}
+ root.querySelectorAll('[placeholder],[aria-label]').forEach(el=>['placeholder','aria-label'].forEach(a=>{const v=el.getAttribute(a);if(v&&D[v])el.setAttribute(a,D[v])}))}
+i18nDOM(document.body);
+function langPick(){$$('[data-langs]').forEach(box=>{box.innerHTML=Object.entries(LANGS).map(([k,v])=>`<button type="button" data-lang="${k}" aria-pressed="${k===LANG}">${v}</button>`).join('');
+ box.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{if(b.dataset.lang===LANG)return;store.set('lang',b.dataset.lang);location.reload()})})}
+langPick();
 const ART={};REGLEMENT.forEach(a=>ART[a.n]=a);
 const NATIVE=!!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());
 const LN=NATIVE?window.Capacitor.Plugins.LocalNotifications:null;
@@ -502,8 +526,8 @@ $('#scrim').onclick=closeSheet;$('#sheetX').onclick=closeSheet;
 function alinea(n,pt){const a=ART[n];if(!a)return '';if(!pt)return a.t;const m=a.t.split('\n').find(l=>l.trim().startsWith(pt+')'));return m?m.trim():a.t}
 function intro(n){const a=ART[n];return a?a.t.split('\n')[0].replace(/\s*;$/,' :'):''}
 function showArticle(n){const a=ART[n];if(!a)return;
- openSheet('Article '+a.n,`<div class="note" style="margin:0 0 10px">Chapitre ${esc(a.ch)} · ${esc(a.chap)}</div><div class="art-body">${esc(a.t)}</div><div class="btns"><button class="btn sec" id="mFav">${FAV.includes(a.n)?'★ Retirer des favoris':'☆ Ajouter aux favoris'}</button></div>`,
- ()=>{$('#mFav').onclick=()=>{toggleFav(a.n);$('#mFav').textContent=FAV.includes(a.n)?'★ Retirer des favoris':'☆ Ajouter aux favoris';buzz()}})}
+ openSheet(tx('Article {0}',a.n),`<div class="note" style="margin:0 0 10px">${tx('Chapitre {0}',esc(a.ch))} · ${esc(a.chap)}</div><div class="art-body">${esc(a.t)}</div><div class="btns"><button class="btn sec" id="mFav">${FAV.includes(a.n)?tx('★ Retirer des favoris'):tx('☆ Ajouter aux favoris')}</button></div>`,
+ ()=>{$('#mFav').onclick=()=>{toggleFav(a.n);$('#mFav').textContent=FAV.includes(a.n)?tx('★ Retirer des favoris'):tx('☆ Ajouter aux favoris');buzz()}})}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-art]');if(b){e.preventDefault();e.stopPropagation();showArticle(Number(b.dataset.art))}},true);
 function toggleFav(n){FAV=FAV.includes(n)?FAV.filter(x=>x!==n):[...FAV,n];store.set('fav',FAV);if(curTab==='reglement')renderRules()}
 
@@ -512,53 +536,53 @@ function dayIndex(d){return Math.floor((d||new Date()).getTime()/86400000)}
 function ruleOfDay(d){const pool=CULTE_ARTS.concat(REGLEMENT.map(a=>a.n).filter(n=>!CULTE_ARTS.includes(n)&&ART[n].t.length>60));const i=dayIndex(d);
  return i%2===0?CULTE_ARTS[(i/2)%CULTE_ARTS.length]:pool[(i*7)%pool.length]}
 function nextCulte(from){const d=new Date(from||Date.now());const [h,m]=(S.heure||'09:00').split(':').map(Number);const t=new Date(d);t.setHours(h,m,0,0);let add=(Number(S.jour)-t.getDay()+7)%7;if(add===0&&t<d)add=7;t.setDate(t.getDate()+add);return t}
-function countdown(){const ms=nextCulte()-Date.now();const days=Math.floor(ms/86400000);if(days===0){const h=Math.floor(ms/3600000);return h>0?`Dans ${h} h`:'Bientôt'}return days===1?'Demain':`Dans ${days} jours`}
-function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-').map(Number);return `${d} ${MOIS[m-1]} ${y}`}
+function countdown(){const ms=nextCulte()-Date.now();const days=Math.floor(ms/86400000);if(days===0){const h=Math.floor(ms/3600000);return h>0?tx('Dans {0} h',h):tx('Bientôt')}return days===1?tx('Demain'):tx('Dans {0} jours',days)}
+function fmtDate(s){if(!s)return '—';const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(LOC,{day:'numeric',month:'short',year:'numeric'})}
 function renderHome(){
- const t=nextCulte();const j=JOURS[t.getDay()];$('#heroDate').textContent=`${j[0].toUpperCase()+j.slice(1)} ${t.getDate()} ${MOIS[t.getMonth()]} · ${S.heure}`;$('#heroCount').textContent=countdown()+' · '+S.paroisse;
+ const nc=nextCulte();$('#heroDate').textContent=cap(nc.toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'short'}))+' · '+S.heure;$('#heroCount').textContent=countdown()+' · '+S.paroisse;
  const n=ruleOfDay();const a=ART[n];
- $('#daily').innerHTML=a?`<div class="k">Règlement intérieur</div><div class="a">Article ${a.n}</div><div class="x">${esc(a.t)}</div><div class="btns two"><button class="btn sec" data-art="${a.n}">Lire</button><button class="btn sec" id="dNext">Une autre</button></div>`:'';
+ $('#daily').innerHTML=a?`<div class="k">${tx('Règlement intérieur')}</div><div class="a">${tx('Article {0}',a.n)}</div><div class="x">${esc(a.t)}</div><div class="btns two"><button class="btn sec" data-art="${a.n}">${tx('Lire')}</button><button class="btn sec" id="dNext">${tx('Une autre')}</button></div>`:'';
  const dn=$('#dNext');if(dn)dn.onclick=()=>showArticle(CULTE_ARTS[Math.floor(Math.random()*CULTE_ARTS.length)]);
  $('#stR').textContent=HIST.length;$('#stA').textContent=anomalies().length;
  const avgEff=HIST.length?Math.round(HIST.reduce((s,h)=>s+(Number(h.eff.h)||0)+(Number(h.eff.f)||0)+(Number(h.eff.e)||0),0)/HIST.length):null;$('#stE').textContent=avgEff==null?'—':avgEff;
  const filled=timed().filter(p=>(R.rows[p.id]||{}).reel).length;
- $('#draftT').textContent='Culte du '+fmtDate(R.date);$('#draftS').textContent=`${filled}/${timed().length} rubriques remplies · ${anomalies().length} anomalie(s)`;
- $('#btnStart').textContent=chrono?'▶ Reprendre le culte en cours':'▶ Démarrer le culte';
+ $('#draftT').textContent=tx('Culte du {0}',fmtDate(R.date));$('#draftS').textContent=tx('{0}/{1} rubriques remplies · {2} anomalie(s)',filled,timed().length,anomalies().length);
+ $('#btnStart').textContent=chrono?tx('▶ Reprendre le culte en cours'):tx('▶ Démarrer le culte');
 }
 $('#goDraft').onclick=()=>showTab('rapport');
 
 /* ---------- Notifications ---------- */
-function notifMsg(){if(!LN)$('#notifState').textContent="Les notifications marchent dans l'application installée (Android ou iPhone). Ici, la règle du jour s'affiche sur l'accueil."}
+function notifMsg(){if(!LN)$('#notifState').textContent=tx("Les notifications marchent dans l'application installée (Android ou iPhone). Ici, la règle du jour s'affiche sur l'accueil.")}
 async function clearNotifs(){const pend=await LN.getPending();if(pend.notifications.length)await LN.cancel({notifications:pend.notifications.map(n=>({id:n.id}))})}
 async function scheduleNotifs(ask){
  if(!LN){notifMsg();$('#sNotif').checked=false;return}
  try{
   let p=await LN.checkPermissions();if(p.display!=='granted'&&ask)p=await LN.requestPermissions();
-  if(p.display!=='granted'){$('#notifState').textContent='Notifications refusées. Autorisez-les dans les réglages du téléphone.';$('#sNotif').checked=false;store.set('notifOn',false);return}
+  if(p.display!=='granted'){$('#notifState').textContent=tx('Notifications refusées. Autorisez-les dans les réglages du téléphone.');$('#sNotif').checked=false;store.set('notifOn',false);return}
   await clearNotifs();
   const list=[];const [dh,dm]=(S.daily||'07:00').split(':').map(Number);const now=new Date();
   for(let i=0;i<40;i++){const d=new Date(now);d.setDate(d.getDate()+i);d.setHours(dh,dm,0,0);if(d<=now)continue;const n=ruleOfDay(d);const a=ART[n];
-   list.push({id:1000+i,title:`Règle du jour · Article ${n}`,body:a.t.slice(0,220),schedule:{at:d,allowWhileIdle:true},extra:{art:n}})}
-  let c=nextCulte();for(let w=0;w<8;w++){const at=new Date(c.getTime()-(Number(S.avant)||0)*60000);if(at>now)list.push({id:2000+w,title:'Culte bientôt',body:`Art. 173 ${alinea(173,'b')} Préparez le rapport du culte.`,schedule:{at,allowWhileIdle:true},extra:{art:173}});c=new Date(c.getTime()+7*86400000)}
+   list.push({id:1000+i,title:tx('Règle du jour · Article {0}',n),body:a.t.slice(0,220),schedule:{at:d,allowWhileIdle:true},extra:{art:n}})}
+  let c=nextCulte();for(let w=0;w<8;w++){const at=new Date(c.getTime()-(Number(S.avant)||0)*60000);if(at>now)list.push({id:2000+w,title:tx('Culte bientôt'),body:`Art. 173 ${alinea(173,'b')} `+tx('Préparez le rapport du culte.'),schedule:{at,allowWhileIdle:true},extra:{art:173}});c=new Date(c.getTime()+7*86400000)}
   await LN.schedule({notifications:list.slice(0,60)});
-  $('#notifState').textContent=`Actives : règle du jour à ${S.daily}, rappel ${S.avant} min avant chaque culte.`;store.set('notifOn',true);$('#sNotif').checked=true;
- }catch(e){$('#notifState').textContent='Impossible de programmer les notifications : '+e.message}
+  $('#notifState').textContent=tx('Actives : règle du jour à {0}, rappel {1} min avant chaque culte.',S.daily,S.avant);store.set('notifOn',true);$('#sNotif').checked=true;
+ }catch(e){$('#notifState').textContent=tx('Impossible de programmer les notifications : ')+e.message}
 }
-async function stopNotifs(){store.set('notifOn',false);if(LN){try{await clearNotifs()}catch(e){}}$('#notifState').textContent='Notifications désactivées.'}
+async function stopNotifs(){store.set('notifOn',false);if(LN){try{await clearNotifs()}catch(e){}}$('#notifState').textContent=tx('Notifications désactivées.')}
 if(LN){try{LN.addListener('localNotificationActionPerformed',ev=>{const n=ev.notification&&ev.notification.extra&&ev.notification.extra.art;if(n)showArticle(Number(n))})}catch(e){}}
 $('#sNotif').onchange=e=>e.target.checked?scheduleNotifs(true):stopNotifs();
 
 /* ---------- Navigation ---------- */
 const TITLES={accueil:'Accueil',rapport:'Rapport',reglement:'Règlement',historique:'Historique',reglages:'Réglages'};
 $$('.tabbar button').forEach(b=>b.onclick=()=>{buzz();showTab(b.dataset.tab)});
-function showTab(t){if(t!=='reglages'&&typeof setAdmin==='function'&&adminOpen)setAdmin(false);curTab=t;$$('.tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));$$('main>section').forEach(s=>s.hidden=s.id!=='s-'+t);$('#screenTitle').textContent=TITLES[t];window.scrollTo(0,0);
+function showTab(t){if(t!=='reglages'&&typeof setAdmin==='function'&&adminOpen)setAdmin(false);curTab=t;$$('.tabbar button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));$$('main>section').forEach(s=>s.hidden=s.id!=='s-'+t);$('#screenTitle').textContent=tx(TITLES[t]);window.scrollTo(0,0);
  if(t==='accueil')renderHome();if(t==='reglement')renderRules();if(t==='historique')renderHist();if(t==='reglages')renderSettings();try{sessionStorage.setItem('mdc_tab',t)}catch(e){}}
 function renderHead(){$('#hdrParoisse').textContent=S.paroisse}
 
 /* ---------- Calculs & anomalies ---------- */
 const toMin=t=>{if(!t)return null;const[a,b]=t.split(':').map(Number);return a*60+b};
 const fmtM=m=>{if(m==null||isNaN(m))return '—';const h=Math.floor(m/60),mm=Math.round(m%60);return h?`${h} h ${String(mm).padStart(2,'0')}`:`${mm} min`};
-const short=l=>l.replace(/ par$/,'');
+const short=l=>tx(l).replace(/ (par|por|by)$/,'');
 const timed=()=>S.programme.filter(p=>!p.texte);
 function row(id){return R.rows[id]||(R.rows[id]={})}
 function ecart(p){const r=R.rows[p.id];if(!r||r.reel===''||r.reel==null||p.prevu==null)return null;return Number(r.reel)-p.prevu}
@@ -569,16 +593,16 @@ function anomalies(){
  const out=[];const tol=Number(S.tol)||0;
  S.programme.forEach(p=>{
   if(p.texte)return;const e=ecart(p),r=R.rows[p.id]||{};
-  if(e!=null&&e>tol)out.push({type:'depassement',rub:p.id,sev:e>tol*3?'bad':'warn',msg:`${short(p.label)} : +${e} min sur ${p.prevu} prévues`});
-  if(e!=null&&e<-tol&&Number(r.reel)>0)out.push({type:'court',rub:p.id,sev:'warn',msg:`${short(p.label)} : ${e} min (prévu ${p.prevu})`});
-  if(r.absent)out.push({type:'absent',rub:p.id,sev:'warn',msg:`${short(p.label)} : intervenant absent ou remplacé`});
+  if(e!=null&&e>tol)out.push({type:'depassement',rub:p.id,sev:e>tol*3?'bad':'warn',msg:tx('{0} : +{1} min sur {2} prévues',short(p.label),e,p.prevu)});
+  if(e!=null&&e<-tol&&Number(r.reel)>0)out.push({type:'court',rub:p.id,sev:'warn',msg:tx('{0} : {1} min (prévu {2})',short(p.label),e,p.prevu)});
+  if(r.absent)out.push({type:'absent',rub:p.id,sev:'warn',msg:tx('{0} : intervenant absent ou remplacé',short(p.label))});
  });
  const d=toMin(R.debut),o=toMin(S.heure);
- if(d!=null&&o!=null&&d-o>tol)out.push({type:'retard',sev:d-o>15?'bad':'warn',msg:`Début à ${R.debut}, ${d-o} min après l'heure officielle (${S.heure})`});
+ if(d!=null&&o!=null&&d-o>tol)out.push({type:'retard',sev:d-o>15?'bad':'warn',msg:tx("Début à {0}, {1} min après l'heure officielle ({2})",R.debut,d-o,S.heure)});
  const tp=totalPrevu(),tr=totalReel();
- if(tr>0&&tr-tp>tol)out.push({type:'total',sev:tr-tp>15?'bad':'warn',msg:`Durée totale ${fmtM(tr)} pour ${fmtM(tp)} prévues (+${tr-tp} min)`});
- if(R.fin&&!effTotal())out.push({type:'effectif',sev:'warn',msg:"L'effectif n'est pas renseigné"});
- CHECKS.forEach(c=>{if((R.checks||{})[c.id]==='non')out.push({type:'verif',check:c,sev:'bad',msg:c.why})});
+ if(tr>0&&tr-tp>tol)out.push({type:'total',sev:tr-tp>15?'bad':'warn',msg:tx('Durée totale {0} pour {1} prévues (+{2} min)',fmtM(tr),fmtM(tp),tr-tp)});
+ if(R.fin&&!effTotal())out.push({type:'effectif',sev:'warn',msg:tx("L'effectif n'est pas renseigné")});
+ CHECKS.forEach(c=>{if((R.checks||{})[c.id]==='non')out.push({type:'verif',check:c,sev:'bad',msg:tx(c.why)})});
  return out;
 }
 function refsFor(a){
@@ -590,50 +614,50 @@ function refsFor(a){
 }
 function keywordRefs(text){const t=(text||'').toLowerCase();if(!t.trim())return[];
  const hit=s=>(s||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean).some(k=>t.includes(k));
- return LIENS.filter(l=>hit(l.mots)).map(l=>({kind:'art',n:l.art,pt:l.pt})).concat(NORMES.filter(r=>hit(r.mots)).map(r=>({kind:'norme',r})))}
+ return LIENS.filter(l=>hit(l.mots)||hit(tx(l.mots))).map(l=>({kind:'art',n:l.art,pt:l.pt})).concat(NORMES.filter(r=>hit(r.mots)).map(r=>({kind:'norme',r})))}
 const refKey=r=>r.kind==='art'?'a'+r.n+(r.pt||''):'n'+r.r.id;
-const refLabel=r=>r.kind==='art'?`Art. ${r.n}${r.pt?' '+r.pt+')':''}`:r.r.code;
+const refLabel=r=>r.kind==='art'?`Art. ${r.n}${r.pt?' '+r.pt+')':''}`:tx(r.r.code);
 function refHTML(r,why,sev){
- if(r.kind==='art')return `<div class="rappel ${sev==='bad'?'bad':''}"><div class="why">${esc(why)}</div><b>Article ${r.n}${r.pt?', alinéa '+r.pt:''}</b>${r.pt?esc(intro(r.n))+'\n':''}${esc(alinea(r.n,r.pt))}<br><button class="linkbtn" data-art="${r.n}">Lire l'article ${r.n} ›</button></div>`;
- return `<div class="rappel ${sev==='bad'?'bad':''}"><div class="why">${esc(why)}</div><b>${esc(r.r.code)} · ${esc(r.r.titre)}</b>${esc(r.r.texte)}</div>`;
+ if(r.kind==='art')return `<div class="rappel ${sev==='bad'?'bad':''}"><div class="why">${esc(why)}</div><b>${tx('Article {0}',r.n)}${r.pt?tx(', alinéa {0}',r.pt):''}</b>${r.pt?esc(intro(r.n))+'\n':''}${esc(alinea(r.n,r.pt))}<br><button class="linkbtn" data-art="${r.n}">${tx("Lire l'article {0} ›",r.n)}</button></div>`;
+ return `<div class="rappel ${sev==='bad'?'bad':''}"><div class="why">${esc(why)}</div><b>${esc(tx(r.r.code))} · ${esc(tx(r.r.titre))}</b>${esc(tx(r.r.texte))}</div>`;
 }
 function rubRefs(p){const an=anomalies().filter(a=>a.rub===p.id).sort((x,y)=>(y.type==='absent')-(x.type==='absent'));const shown=new Set();let h='';
- an.forEach(a=>refsFor(a).forEach(rf=>{const k=refKey(rf);if(shown.has(k)||shown.size>=3)return;shown.add(k);h+=refHTML(rf,TRIGGERS[a.type],a.sev)}));
- keywordRefs((R.rows[p.id]||{}).obs).forEach(rf=>{const k=refKey(rf);if(shown.has(k)||shown.size>=4)return;shown.add(k);h+=refHTML(rf,'Lié à votre observation','warn')});return h}
+ an.forEach(a=>refsFor(a).forEach(rf=>{const k=refKey(rf);if(shown.has(k)||shown.size>=3)return;shown.add(k);h+=refHTML(rf,tx(TRIGGERS[a.type]),a.sev)}));
+ keywordRefs((R.rows[p.id]||{}).obs).forEach(rf=>{const k=refKey(rf);if(shown.has(k)||shown.size>=4)return;shown.add(k);h+=refHTML(rf,tx('Lié à votre observation'),'warn')});return h}
 
 /* ---------- Rapport ---------- */
 function renderChecks(){
- $('#checks').innerHTML=CHECKS.map(c=>{const v=R.checks[c.id];return `<div class="rowi" style="cursor:default"><span class="main"><span class="t" style="white-space:normal">${esc(c.q)}</span><button class="linkbtn" style="padding:2px 0 0;font-size:.8rem" data-art="${c.art}">Art. ${c.art}${c.pt?' '+c.pt+')':''}</button></span>
- <span class="seg"><button data-ck="${c.id}" data-v="oui" class="${v==='oui'?'on-oui':''}">Oui</button><button data-ck="${c.id}" data-v="non" class="${v==='non'?'on-non':''}">Non</button></span></div>`}).join('');
- $$('[data-ck]').forEach(b=>b.onclick=()=>{buzz();const id=b.dataset.ck;R.checks[id]=R.checks[id]===b.dataset.v?'':b.dataset.v;saveDraft();renderChecks();refresh();if(R.checks[id]==='non'){const c=CHECKS.find(x=>x.id===id);toast(`Rappel : Art. ${c.art}${c.pt?' '+c.pt+')':''}. Touchez le lien pour le lire.`)}});
+ $('#checks').innerHTML=CHECKS.map(c=>{const v=R.checks[c.id];return `<div class="rowi" style="cursor:default"><span class="main"><span class="t" style="white-space:normal">${esc(tx(c.q))}</span><button class="linkbtn" style="padding:2px 0 0;font-size:.8rem" data-art="${c.art}">Art. ${c.art}${c.pt?' '+c.pt+')':''}</button></span>
+ <span class="seg"><button data-ck="${c.id}" data-v="oui" class="${v==='oui'?'on-oui':''}">${tx('Oui')}</button><button data-ck="${c.id}" data-v="non" class="${v==='non'?'on-non':''}">${tx('Non')}</button></span></div>`}).join('');
+ $$('[data-ck]').forEach(b=>b.onclick=()=>{buzz();const id=b.dataset.ck;R.checks[id]=R.checks[id]===b.dataset.v?'':b.dataset.v;saveDraft();renderChecks();refresh();if(R.checks[id]==='non'){const c=CHECKS.find(x=>x.id===id);toast(tx('Rappel : Art. {0}. Touchez le lien pour le lire.',c.art+(c.pt?' '+c.pt+')':'')))}});
 }
 function renderRubriques(){
  const tol=Number(S.tol)||0;const an=anomalies();
  $('#rubriques').innerHTML=S.programme.map((p,i)=>{const r=R.rows[p.id]||{};
-  if(p.texte)return `<button class="rowi" data-rub="${p.id}"><span class="ic" style="background:var(--gold-soft);color:var(--gold)">${i+1}</span><span class="main"><span class="t">${esc(p.label)}</span><span class="s">${esc(r.texte||'Toucher pour saisir')}</span></span><span class="chev">›</span></button>`;
+  if(p.texte)return `<button class="rowi" data-rub="${p.id}"><span class="ic" style="background:var(--gold-soft);color:var(--gold)">${i+1}</span><span class="main"><span class="t">${esc(tx(p.label))}</span><span class="s">${esc(r.texte||tx('Toucher pour saisir'))}</span></span><span class="chev">›</span></button>`;
   const e=ecart(p);let chip='';
   if(e==null)chip=`<span class="chip none num">${p.prevu==null?'—':p.prevu+' min'}</span>`;
   else chip=`<span class="chip num ${Math.abs(e)<=tol?'ok':(e>tol*3?'bad':'warn')}">${r.reel} min${e?` (${e>0?'+':''}${e})`:''}</span>`;
   const hasAn=an.some(a=>a.rub===p.id)||keywordRefs(r.obs).length;
-  return `<button class="rowi" data-rub="${p.id}"><span class="ic"${hasAn?' style="background:var(--warn-soft);color:var(--warn)"':''}>${i+1}</span><span class="main"><span class="t">${esc(short(p.label))}</span><span class="s">${esc([r.qui,r.absent?'remplacé':'',r.obs].filter(Boolean).join(' · ')||(p.par?'Intervenant à saisir':'Toucher pour saisir'))}</span></span>${chip}<span class="chev">›</span></button>`}).join('');
+  return `<button class="rowi" data-rub="${p.id}"><span class="ic"${hasAn?' style="background:var(--warn-soft);color:var(--warn)"':''}>${i+1}</span><span class="main"><span class="t">${esc(short(p.label))}</span><span class="s">${esc([r.qui,r.absent?tx('remplacé'):'',r.obs].filter(Boolean).join(' · ')||(p.par?tx('Intervenant à saisir'):tx('Toucher pour saisir')))}</span></span>${chip}<span class="chev">›</span></button>`}).join('');
  $$('[data-rub]').forEach(b=>b.onclick=()=>openRub(b.dataset.rub));
 }
-function stepperHTML(id,val){return `<button type="button" data-st="-1" aria-label="Moins">−</button><input id="${id}" type="number" min="0" inputmode="numeric" class="num" value="${esc(val??'')}" placeholder="0"><button type="button" data-st="1" aria-label="Plus">+</button>`}
+function stepperHTML(id,val){return `<button type="button" data-st="-1" aria-label="${tx('Moins')}">−</button><input id="${id}" type="number" min="0" inputmode="numeric" class="num" value="${esc(val??'')}" placeholder="0"><button type="button" data-st="1" aria-label="${tx('Plus')}">+</button>`}
 function bindStepper(box,onchange){const inp=box.querySelector('input');box.querySelectorAll('[data-st]').forEach(b=>b.onclick=()=>{buzz();inp.value=Math.max(0,(Number(inp.value)||0)+Number(b.dataset.st));onchange(inp.value)});inp.oninput=()=>onchange(inp.value)}
 function openRub(id){
  const p=S.programme.find(x=>x.id===id);const i=S.programme.indexOf(p);const r=row(id);
- if(p.texte){openSheet(`${i+1}. ${p.label}`,`<textarea class="input" id="rbTxt" placeholder="${id==='r10'?'Ex. Ésaïe 55 : 6-11':'Idée principale du message'}">${esc(r.texte||'')}</textarea><div class="btns"><button class="btn" id="rbOk">Valider</button></div>`,
+ if(p.texte){openSheet(`${i+1}. ${tx(p.label)}`,`<textarea class="input" id="rbTxt" placeholder="${id==='r10'?tx('Ex. Ésaïe 55 : 6-11'):tx('Idée principale du message')}">${esc(r.texte||'')}</textarea><div class="btns"><button class="btn" id="rbOk">${tx('Valider')}</button></div>`,
   ()=>{$('#rbTxt').oninput=e=>{r.texte=e.target.value;saveDraft()};$('#rbOk').onclick=closeSheet},()=>{renderRubriques();refresh()});return}
  openSheet(`${i+1}. ${short(p.label)}`,`
-  <label class="lbl" for="rbQui" style="margin-top:4px">${p.par?'Intervenant':'Responsable'}</label><input class="input" id="rbQui" value="${esc(r.qui||'')}" placeholder="Nom">
+  <label class="lbl" for="rbQui" style="margin-top:4px">${p.par?tx('Intervenant'):tx('Responsable')}</label><input class="input" id="rbQui" value="${esc(r.qui||'')}" placeholder="${tx('Nom')}">
   <div class="card list" style="margin-top:14px;background:var(--surface2)">
-   <div class="field"><label>Temps réel (min)</label><div class="stepper" id="rbSt">${stepperHTML('rbMin',r.reel)}</div></div>
-   <div class="field"><label>Temps prévu</label><span class="num" style="font-weight:700">${p.prevu==null?'—':p.prevu+' min'}</span></div>
-   <div class="field"><label for="rbAbs">Absent / remplacé</label><span class="switch"><input type="checkbox" id="rbAbs" ${r.absent?'checked':''}><span></span></span></div>
+   <div class="field"><label>${tx('Temps réel (min)')}</label><div class="stepper" id="rbSt">${stepperHTML('rbMin',r.reel)}</div></div>
+   <div class="field"><label>${tx('Temps prévu')}</label><span class="num" style="font-weight:700">${p.prevu==null?'—':p.prevu+' min'}</span></div>
+   <div class="field"><label for="rbAbs">${tx('Absent / remplacé')}</label><span class="switch"><input type="checkbox" id="rbAbs" ${r.absent?'checked':''}><span></span></span></div>
   </div>
-  <label class="lbl" for="rbObs">Observation</label><input class="input" id="rbObs" value="${esc(r.obs||'')}" placeholder="Remarque éventuelle">
+  <label class="lbl" for="rbObs">${tx('Observation')}</label><input class="input" id="rbObs" value="${esc(r.obs||'')}" placeholder="${tx('Remarque éventuelle')}">
   <div id="rbRefs" style="margin-top:14px"></div>
-  <div class="btns"><button class="btn" id="rbOk">Valider</button></div>`,()=>{
+  <div class="btns"><button class="btn" id="rbOk">${tx('Valider')}</button></div>`,()=>{
   const up=()=>{saveDraft();$('#rbRefs').innerHTML=rubRefs(p)};
   $('#rbQui').oninput=e=>{r.qui=e.target.value;saveDraft()};
   bindStepper($('#rbSt'),v=>{r.reel=v;up()});
@@ -646,13 +670,13 @@ function renderEff(){$$('[data-eff]').forEach(box=>{const k=box.dataset.eff;box.
 function refresh(){
  const an=anomalies();const tp=totalPrevu(),tr=totalReel();
  $('#fTotal').textContent=effTotal();
- $('#totLine').textContent=tr?`· ${fmtM(tr)} / ${fmtM(tp)}`:`· prévu ${fmtM(tp)}`;
+ $('#totLine').textContent=tr?`· ${fmtM(tr)} / ${fmtM(tp)}`:'· '+tx('prévu {0}',fmtM(tp));
  $('#anCount').hidden=!an.length;$('#anCount').textContent=an.length;
  $('#tabBadge').hidden=!an.length;$('#tabBadge').textContent=an.length;
- let h=an.map(a=>{const refs=refsFor(a);return `<div class="anom ${a.sev}"><div class="m">${esc(a.msg)}</div>${refs.map(r=>r.kind==='art'?`<div class="r"><button class="linkbtn" style="padding:0" data-art="${r.n}">Art. ${r.n}${r.pt?' '+r.pt+')':''}</button> ${esc(alinea(r.n,r.pt))}</div>`:`<div class="r"><b>${esc(r.r.code)}</b> ${esc(r.r.texte)}</div>`).join('')}</div>`}).join('');
+ let h=an.map(a=>{const refs=refsFor(a);return `<div class="anom ${a.sev}"><div class="m">${esc(a.msg)}</div>${refs.map(r=>r.kind==='art'?`<div class="r"><button class="linkbtn" style="padding:0" data-art="${r.n}">Art. ${r.n}${r.pt?' '+r.pt+')':''}</button> ${esc(alinea(r.n,r.pt))}</div>`:`<div class="r"><b>${esc(tx(r.r.code))}</b> ${esc(tx(r.r.texte))}</div>`).join('')}</div>`}).join('');
  const seen=new Set(an.flatMap(a=>refsFor(a).map(refKey)));const kw=keywordRefs(R.synthese).filter(r=>{const k=refKey(r);if(seen.has(k))return false;seen.add(k);return true});
- h+=kw.map(r=>`<div class="anom"><div class="m">Lié à votre synthèse</div><div class="r">${r.kind==='art'?`<button class="linkbtn" style="padding:0" data-art="${r.n}">Art. ${r.n}${r.pt?' '+r.pt+')':''}</button> ${esc(alinea(r.n,r.pt))}`:esc(r.r.texte)}</div></div>`).join('');
- $('#summary').innerHTML=h||`<div class="anom" style="color:var(--muted)">Aucune anomalie. Dès qu'un écart ou un problème est noté, l'article du règlement concerné s'affiche ici.</div>`;
+ h+=kw.map(r=>`<div class="anom"><div class="m">${tx('Lié à votre synthèse')}</div><div class="r">${r.kind==='art'?`<button class="linkbtn" style="padding:0" data-art="${r.n}">Art. ${r.n}${r.pt?' '+r.pt+')':''}</button> ${esc(alinea(r.n,r.pt))}`:esc(tx(r.r.texte))}</div></div>`).join('');
+ $('#summary').innerHTML=h||`<div class="anom" style="color:var(--muted)">${tx("Aucune anomalie. Dès qu'un écart ou un problème est noté, l'article du règlement concerné s'affiche ici.")}</div>`;
 }
 function bindReport(){
  R.checks=R.checks||{};
@@ -661,24 +685,24 @@ function bindReport(){
  renderChecks();renderRubriques();renderEff();refresh();
 }
 [['fDate','date'],['fDebut','debut'],['fFin','fin'],['fSynthese','synthese'],['fFaitA','faitA'],['fMaitre','maitre']].forEach(([id,k])=>$('#'+id).addEventListener('input',e=>{R[k]=e.target.value;saveDraft();refresh()}));
-$('#btnInsere').onclick=()=>{const an=anomalies();if(!an.length){toast('Aucune anomalie à ajouter');return}
- const txt='Anomalies constatées :\n'+an.map(a=>{const rf=refsFor(a).filter(r=>r.kind==='art');return '- '+a.msg+(rf.length?' (cf. '+[...new Set(rf.map(refLabel))].join(', ')+' du Règlement intérieur)':'')}).join('\n');
- R.synthese=(R.synthese?R.synthese.trim()+'\n\n':'')+txt;$('#fSynthese').value=R.synthese;saveDraft();refresh();toast('Anomalies ajoutées à la synthèse')};
-$('#btnNouveau').onclick=function(){confirmBtn(this,'Confirmer ?',()=>{this.textContent='Nouveau';R=blankReport();saveDraft();stopChrono(false);bindReport();toast('Nouveau rapport prêt')})};
+$('#btnInsere').onclick=()=>{const an=anomalies();if(!an.length){toast(tx('Aucune anomalie à ajouter'));return}
+ const txt=tx('Anomalies constatées :')+'\n'+an.map(a=>{const rf=refsFor(a).filter(r=>r.kind==='art');return '- '+a.msg+(rf.length?tx(' (cf. {0} du Règlement intérieur)',[...new Set(rf.map(refLabel))].join(', ')):'')}).join('\n');
+ R.synthese=(R.synthese?R.synthese.trim()+'\n\n':'')+txt;$('#fSynthese').value=R.synthese;saveDraft();refresh();toast(tx('Anomalies ajoutées à la synthèse'))};
+$('#btnNouveau').onclick=function(){confirmBtn(this,tx('Confirmer ?'),()=>{this.textContent=tx('Nouveau');R=blankReport();saveDraft();stopChrono(false);bindReport();toast(tx('Nouveau rapport prêt'))})};
 $('#btnSave').onclick=()=>{R.savedAt=new Date().toISOString();R.paroisse=S.paroisse;R.anomalies=anomalies().map(a=>a.msg);R.totalReel=totalReel();R.totalPrevu=totalPrevu();
- const i=HIST.findIndex(h=>h.id===R.id);const copy=JSON.parse(JSON.stringify(R));if(i>=0)HIST[i]=copy;else HIST.unshift(copy);store.set('hist',HIST);buzz();toast('Rapport enregistré dans l\'historique')};
+ const i=HIST.findIndex(h=>h.id===R.id);const copy=JSON.parse(JSON.stringify(R));if(i>=0)HIST[i]=copy;else HIST.unshift(copy);store.set('hist',HIST);buzz();toast(tx("Rapport enregistré dans l'historique"))};
 function reportText(rep){
- const lines=[S.eglise,S.paroisse+' — '+S.ville,'','*RAPPORT DU CULTE*',`Date : ${rep.date||'—'}   Début : ${rep.debut||'—'}   Fin : ${rep.fin||'—'}`,''];
+ const lines=[S.eglise,S.paroisse+' — '+S.ville,'','*'+tx('RAPPORT DU CULTE')+'*',tx('Date : {0}   Début : {1}   Fin : {2}',rep.date||'—',rep.debut||'—',rep.fin||'—'),''];
  S.programme.forEach((p,i)=>{const r=rep.rows[p.id]||{};
-  if(p.texte){lines.push(`${i+1}. ${p.label} : ${r.texte||'—'}`);return}
+  if(p.texte){lines.push(`${i+1}. ${tx(p.label)} : ${r.texte||'—'}`);return}
   const e=(r.reel!==''&&r.reel!=null&&p.prevu!=null)?Number(r.reel)-p.prevu:null;
-  lines.push(`${i+1}. ${p.label}${r.qui?' '+r.qui:''} : ${r.reel||'—'} min / ${p.prevu??'—'}${e!=null?` (${e>0?'+':''}${e})`:''}${r.absent?' [remplacé]':''}${r.obs?' — '+r.obs:''}`)});
- lines.push('',`Effectif : ${(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0)} (H ${rep.eff.h||0}, F ${rep.eff.f||0}, E ${rep.eff.e||0})`);
- if(rep.synthese)lines.push('','*Synthèse*',rep.synthese);
- lines.push('',`Fait à ${rep.faitA||S.ville}, le ${rep.date||''}`,`Le Maître du Culte : ${rep.maitre||''}`);
+  lines.push(`${i+1}. ${tx(p.label)}${r.qui?' '+r.qui:''} : ${r.reel||'—'} min / ${p.prevu??'—'}${e!=null?` (${e>0?'+':''}${e})`:''}${r.absent?' ['+tx('remplacé')+']':''}${r.obs?' — '+r.obs:''}`)});
+ lines.push('',tx('Effectif : {0} (H {1}, F {2}, E {3})',(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0),rep.eff.h||0,rep.eff.f||0,rep.eff.e||0));
+ if(rep.synthese)lines.push('','*'+tx('Synthèse')+'*',rep.synthese);
+ lines.push('',tx('Fait à {0}, le {1}',rep.faitA||S.ville,rep.date||''),tx('Le Maître du Culte : {0}',rep.maitre||''));
  return lines.join('\n');
 }
-function copyText(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Rapport copié. Collez-le dans WhatsApp.')).catch(()=>{openSheet('Copier le rapport',`<p class="note" style="margin:0 0 8px">Sélectionnez le texte puis copiez-le.</p><textarea class="input" id="cpTxt" style="min-height:50vh">${esc(t)}</textarea>`,()=>$('#cpTxt').select())})}
+function copyText(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast(tx('Rapport copié. Collez-le dans WhatsApp.'))).catch(()=>{openSheet(tx('Copier le rapport'),`<p class="note" style="margin:0 0 8px">${tx('Sélectionnez le texte puis copiez-le.')}</p><textarea class="input" id="cpTxt" style="min-height:50vh">${esc(t)}</textarea>`,()=>$('#cpTxt').select())})}
 
 /* ---------- Mode culte en direct ---------- */
 let tick=null;
@@ -688,20 +712,20 @@ $('#btnStart').onclick=startCulte;$('#btnChrono').onclick=startCulte;
 function showLive(){$('#live').hidden=false;clearInterval(tick);tick=setInterval(drawLive,500);paintStep();drawLive();try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}}
 function paintStep(){const T=timed();const p=T[chrono.idx];if(!p)return;const r=row(p.id);
  $('#lvStep').textContent=`${chrono.idx+1} / ${T.length}`;$('#lvProg').style.width=(chrono.idx/T.length*100)+'%';
- $('#lvName').textContent=short(p.label);$('#lvPrevu').textContent=p.prevu==null?'Pas de temps prévu':`Prévu : ${p.prevu} min`;
+ $('#lvName').textContent=short(p.label);$('#lvPrevu').textContent=p.prevu==null?tx('Pas de temps prévu'):tx('Prévu : {0} min',p.prevu);
  $('#lvWho').value=r.qui||'';$('#lvWho').hidden=!p.par;$('#lvWho').oninput=e=>{r.qui=e.target.value;saveDraft()};
  $('#lvHint').textContent=hintFor(p)}
 function drawLive(){const p=timed()[chrono.idx];if(!p){stopChrono(true);return}
  const s=Math.floor((Date.now()-chrono.start)/1000);$('#lvTime').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
  const tot=(p.prevu||0)*60;const frac=tot?Math.min(1,s/tot):0;$('#lvArc').setAttribute('stroke-dashoffset',String(339.3*(1-frac)));
  const over=tot&&s>tot;$('#lvRing').classList.toggle('over',!!over);$('#lvArc').setAttribute('stroke',over?'#ff8a80':'#e6b65a');
- if(over&&!chrono.warned){chrono.warned=true;$('#lvHint').textContent=`Temps prévu dépassé.\nArt. 173 ${alinea(173,'b')}`;try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}}
+ if(over&&!chrono.warned){chrono.warned=true;$('#lvHint').textContent=tx('Temps prévu dépassé.')+`\nArt. 173 ${alinea(173,'b')}`;try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}}}
 function commitCurrent(){const p=timed()[chrono.idx];if(!p)return;row(p.id).reel=String(Math.max(0,Math.round((Date.now()-chrono.start)/60000)))}
 $('#lvNext').onclick=()=>{buzz();commitCurrent();chrono.idx++;chrono.start=Date.now();chrono.warned=false;store.set('chrono',chrono);saveDraft();if(!timed()[chrono.idx]){stopChrono(true);return}paintStep();drawLive()};
-$('#lvEnd').onclick=function(){confirmBtn(this,'Confirmer',()=>{this.textContent='Terminer';commitCurrent();stopChrono(true)})};
-$('#lvMin').onclick=()=>{$('#live').hidden=true;clearInterval(tick);renderRubriques();refresh();showTab('rapport');toast('Le culte continue. Touchez « Mode culte en direct » pour revenir.')};
+$('#lvEnd').onclick=function(){confirmBtn(this,tx('Confirmer'),()=>{this.textContent=tx('Terminer');commitCurrent();stopChrono(true)})};
+$('#lvMin').onclick=()=>{$('#live').hidden=true;clearInterval(tick);renderRubriques();refresh();showTab('rapport');toast(tx('Le culte continue. Touchez « Mode culte en direct » pour revenir.'))};
 function stopChrono(setEnd){clearInterval(tick);if(chrono&&setEnd){R.fin=new Date().toTimeString().slice(0,5);$('#fFin').value=R.fin}
- const was=!!chrono;chrono=null;store.set('chrono',null);$('#live').hidden=true;saveDraft();renderRubriques();refresh();if(was&&setEnd){showTab('rapport');toast('Culte terminé. Vérifiez puis enregistrez le rapport.',3500)}}
+ const was=!!chrono;chrono=null;store.set('chrono',null);$('#live').hidden=true;saveDraft();renderRubriques();refresh();if(was&&setEnd){showTab('rapport');toast(tx('Culte terminé. Vérifiez puis enregistrez le rapport.'),3500)}}
 
 /* ---------- Règlement ---------- */
 $('#ruleSearch').oninput=renderRules;
@@ -716,27 +740,27 @@ function renderRules(){
  if(filter==='culte'&&!q)list=list.filter(a=>CULTE_ARTS.includes(a.n));
  if(filter==='fav')list=list.filter(a=>FAV.includes(a.n));
  if(q)list=list.filter(a=>norm('article '+a.n+' '+a.t).includes(nq)||nq.split(/\s+/).every(w=>norm(a.t).includes(w)));
- if(!list.length){$('#rulesList').innerHTML=`<p class="note">${filter==='fav'?'Aucun favori. Ouvrez un article et touchez « Ajouter aux favoris ».':'Aucun article ne correspond.'}</p>`;return}
+ if(!list.length){$('#rulesList').innerHTML=`<p class="note">${filter==='fav'?tx('Aucun favori. Ouvrez un article et touchez « Ajouter aux favoris ».'):tx('Aucun article ne correspond.')}</p>`;return}
  const groups={};list.forEach(a=>(groups[a.ch]=groups[a.ch]||{chap:a.chap,arts:[]}).arts.push(a));
- $('#rulesList').innerHTML=Object.entries(groups).map(([ch,g])=>`<div class="chap-h">Chap. ${esc(ch)} · ${esc(g.chap)}</div><div class="card list">${g.arts.map(a=>`<button class="rowi" data-art="${a.n}"><span class="ic" style="width:auto;min-width:40px;padding:0 6px">${a.n}</span><span class="main"><span class="s2" style="color:var(--ink)">${hl(a.t.replace(/\n/g,' '),q)}</span></span>${FAV.includes(a.n)?'<span style="color:var(--gold)">★</span>':''}<span class="chev">›</span></button>`).join('')}</div>`).join('');
+ $('#rulesList').innerHTML=Object.entries(groups).map(([ch,g])=>`<div class="chap-h">${tx('Chap. {0}',esc(ch))} · ${esc(g.chap)}</div><div class="card list">${g.arts.map(a=>`<button class="rowi" data-art="${a.n}"><span class="ic" style="width:auto;min-width:40px;padding:0 6px">${a.n}</span><span class="main"><span class="s2" style="color:var(--ink)">${hl(a.t.replace(/\n/g,' '),q)}</span></span>${FAV.includes(a.n)?'<span style="color:var(--gold)">★</span>':''}<span class="chev">›</span></button>`).join('')}</div>`).join('');
 }
 function renderNormes(){
- $('#rulesList').innerHTML=`<p class="note">Les normes propres à la paroisse complètent le règlement et sont rappelées automatiquement.</p><div class="card list">${NORMES.map(r=>`<button class="rowi" data-nm="${r.id}"><span class="ic" style="background:var(--gold-soft);color:var(--gold)">N</span><span class="main"><span class="t">${esc(r.titre)}</span><span class="s2">${esc(r.texte)}</span></span><span class="chev">›</span></button>`).join('')||'<div class="anom note">Aucune norme.</div>'}</div><div class="btns"><button class="btn sec" id="btnAddRule">+ Ajouter une norme</button></div>`;
+ $('#rulesList').innerHTML=`<p class="note">${tx('Les normes propres à la paroisse complètent le règlement et sont rappelées automatiquement.')}</p><div class="card list">${NORMES.map(r=>`<button class="rowi" data-nm="${r.id}"><span class="ic" style="background:var(--gold-soft);color:var(--gold)">N</span><span class="main"><span class="t">${esc(tx(r.titre))}</span><span class="s2">${esc(tx(r.texte))}</span></span><span class="chev">›</span></button>`).join('')||'<div class="anom note">'+tx('Aucune norme.')+'</div>'}</div><div class="btns"><button class="btn sec" id="btnAddRule">${tx('+ Ajouter une norme')}</button></div>`;
  $$('[data-nm]').forEach(b=>b.onclick=()=>openNorme(b.dataset.nm));$('#btnAddRule').onclick=()=>openNorme(null);
 }
 function openNorme(id){
- const r=id?NORMES.find(x=>x.id===id):{id:uid(),code:'Norme '+(NORMES.length+1),titre:'',texte:'',triggers:[],rubs:[],mots:'',src:''};
- openSheet(id?'Modifier la norme':'Nouvelle norme',`
- <label class="lbl" for="rfTitre" style="margin-top:4px">Titre</label><input class="input" id="rfTitre" value="${esc(r.titre)}">
- <label class="lbl" for="rfTexte">Texte</label><textarea class="input" id="rfTexte">${esc(r.texte)}</textarea>
- <label class="lbl" for="rfSrc">Source (décision, lettre, conseil…)</label><input class="input" id="rfSrc" value="${esc(r.src||'')}">
- <div class="lbl">Rappeler quand…</div><div class="card list" style="background:var(--surface2)">${Object.entries(TRIGGERS).filter(([k])=>k!=='verif').map(([k,v])=>`<div class="field"><label>${v}</label><span class="switch"><input type="checkbox" name="rfT" value="${k}" ${r.triggers.includes(k)?'checked':''}><span></span></span></div>`).join('')}</div>
- <label class="lbl" for="rfMots">Mots-clés dans les observations (séparés par des virgules)</label><input class="input" id="rfMots" value="${esc(r.mots)}">
- <div class="btns"><button class="btn" id="rfSave">Enregistrer</button>${id?'<button class="btn danger" id="rfDel">Supprimer</button>':''}</div>`,()=>{
+ const r=id?NORMES.find(x=>x.id===id):{id:uid(),code:tx('Norme {0}',NORMES.length+1),titre:'',texte:'',triggers:[],rubs:[],mots:'',src:''};
+ openSheet(id?tx('Modifier la norme'):tx('Nouvelle norme'),`
+ <label class="lbl" for="rfTitre" style="margin-top:4px">${tx('Titre')}</label><input class="input" id="rfTitre" value="${esc(r.titre)}">
+ <label class="lbl" for="rfTexte">${tx('Texte')}</label><textarea class="input" id="rfTexte">${esc(r.texte)}</textarea>
+ <label class="lbl" for="rfSrc">${tx('Source (décision, lettre, conseil…)')}</label><input class="input" id="rfSrc" value="${esc(r.src||'')}">
+ <div class="lbl">${tx('Rappeler quand…')}</div><div class="card list" style="background:var(--surface2)">${Object.entries(TRIGGERS).filter(([k])=>k!=='verif').map(([k,v])=>`<div class="field"><label>${tx(v)}</label><span class="switch"><input type="checkbox" name="rfT" value="${k}" ${r.triggers.includes(k)?'checked':''}><span></span></span></div>`).join('')}</div>
+ <label class="lbl" for="rfMots">${tx('Mots-clés dans les observations (séparés par des virgules)')}</label><input class="input" id="rfMots" value="${esc(r.mots)}">
+ <div class="btns"><button class="btn" id="rfSave">${tx('Enregistrer')}</button>${id?'<button class="btn danger" id="rfDel">'+tx('Supprimer')+'</button>':''}</div>`,()=>{
  $('#rfSave').onclick=()=>{const n={...r,titre:$('#rfTitre').value.trim(),texte:$('#rfTexte').value.trim(),src:$('#rfSrc').value.trim(),mots:$('#rfMots').value,triggers:$$('[name=rfT]:checked').map(x=>x.value)};
-  if(!n.titre||!n.texte){toast('Ajoutez au moins un titre et un texte');return}
-  const i=NORMES.findIndex(x=>x.id===n.id);if(i>=0)NORMES[i]=n;else NORMES.push(n);store.set('normes',NORMES);closeSheet();renderNormes();refresh();toast('Norme enregistrée')};
- if(id)$('#rfDel').onclick=function(){confirmBtn(this,'Confirmer la suppression',()=>{NORMES=NORMES.filter(x=>x.id!==id);store.set('normes',NORMES);closeSheet();renderNormes();refresh()})};
+  if(!n.titre||!n.texte){toast(tx('Ajoutez au moins un titre et un texte'));return}
+  const i=NORMES.findIndex(x=>x.id===n.id);if(i>=0)NORMES[i]=n;else NORMES.push(n);store.set('normes',NORMES);closeSheet();renderNormes();refresh();toast(tx('Norme enregistrée'))};
+ if(id)$('#rfDel').onclick=function(){confirmBtn(this,tx('Confirmer la suppression'),()=>{NORMES=NORMES.filter(x=>x.id!==id);store.set('normes',NORMES);closeSheet();renderNormes();refresh()})};
  });
 }
 
@@ -744,25 +768,25 @@ function openNorme(id){
 function renderHist(){
  const n=HIST.length;const withAn=HIST.filter(h=>(h.anomalies||[]).length).length;
  const avg=n?Math.round(HIST.reduce((s,h)=>s+((h.totalReel||0)-(h.totalPrevu||0)),0)/n):0;
- $('#stats').innerHTML=`<div class="stat"><div class="v num">${n}</div><div class="l">rapports</div></div><div class="stat"><div class="v num">${withAn}</div><div class="l">avec anomalies</div></div><div class="stat"><div class="v num">${n?(avg>0?'+':'')+avg:'—'}</div><div class="l">écart moyen (min)</div></div>`;
- $('#histList').innerHTML=HIST.map(h=>`<button class="rowi" data-h="${h.id}"><span class="ic"${(h.anomalies||[]).length?' style="background:var(--warn-soft);color:var(--warn)"':''}>${(h.anomalies||[]).length||'✓'}</span><span class="main"><span class="t">Culte du ${esc(fmtDate(h.date))}</span><span class="s">${esc(h.debut||'?')}–${esc(h.fin||'?')} · ${(h.anomalies||[]).length?(h.anomalies.length+' anomalie(s)'):'aucune anomalie'}</span></span><span class="chev">›</span></button>`).join('')||'<div class="anom note" style="margin:0">Aucun rapport enregistré. Remplissez un rapport puis touchez « Enregistrer le rapport ».</div>';
+ $('#stats').innerHTML=`<div class="stat"><div class="v num">${n}</div><div class="l">${tx('rapports')}</div></div><div class="stat"><div class="v num">${withAn}</div><div class="l">${tx('avec anomalies')}</div></div><div class="stat"><div class="v num">${n?(avg>0?'+':'')+avg:'—'}</div><div class="l">${tx('écart moyen (min)')}</div></div>`;
+ $('#histList').innerHTML=HIST.map(h=>`<button class="rowi" data-h="${h.id}"><span class="ic"${(h.anomalies||[]).length?' style="background:var(--warn-soft);color:var(--warn)"':''}>${(h.anomalies||[]).length||'✓'}</span><span class="main"><span class="t">${esc(tx('Culte du {0}',fmtDate(h.date)))}</span><span class="s">${esc(h.debut||'?')}–${esc(h.fin||'?')} · ${(h.anomalies||[]).length?tx('{0} anomalie(s)',h.anomalies.length):tx('aucune anomalie')}</span></span><span class="chev">›</span></button>`).join('')||'<div class="anom note" style="margin:0">'+tx('Aucun rapport enregistré. Remplissez un rapport puis touchez « Enregistrer le rapport ».')+'</div>';
  $$('[data-h]').forEach(b=>b.onclick=()=>{const h=HIST.find(x=>x.id===b.dataset.h);
-  openSheet('Culte du '+fmtDate(h.date),`<div class="card list" style="background:var(--surface2)">${(h.anomalies||[]).map(a=>`<div class="anom warn"><div class="m">${esc(a)}</div></div>`).join('')||'<div class="anom">Aucune anomalie.</div>'}</div><div class="btns"><button class="btn" id="hOpen">Ouvrir le rapport</button><button class="btn sec" id="hCp">Envoyer (PDF)</button><button class="btn danger" id="hRm">Supprimer</button></div>`,()=>{
+  openSheet(tx('Culte du {0}',fmtDate(h.date)),`<div class="card list" style="background:var(--surface2)">${(h.anomalies||[]).map(a=>`<div class="anom warn"><div class="m">${esc(a)}</div></div>`).join('')||'<div class="anom">'+tx('Aucune anomalie.')+'</div>'}</div><div class="btns"><button class="btn" id="hOpen">${tx('Ouvrir le rapport')}</button><button class="btn sec" id="hCp">${tx('Envoyer (PDF)')}</button><button class="btn danger" id="hRm">${tx('Supprimer')}</button></div>`,()=>{
    $('#hOpen').onclick=()=>{R=JSON.parse(JSON.stringify(h));saveDraft();bindReport();closeSheet();showTab('rapport')};
    $('#hCp').onclick=()=>{closeSheet();setTimeout(()=>openSend(h),260)};
-   $('#hRm').onclick=function(){confirmBtn(this,'Confirmer la suppression',()=>{HIST=HIST.filter(x=>x.id!==h.id);store.set('hist',HIST);closeSheet();renderHist()})};
+   $('#hRm').onclick=function(){confirmBtn(this,tx('Confirmer la suppression'),()=>{HIST=HIST.filter(x=>x.id!==h.id);store.set('hist',HIST);closeSheet();renderHist()})};
   })});
 }
 
 /* ---------- Réglages ---------- */
 const SMAP=[['sEglise','eglise'],['sParoisse','paroisse'],['sVille','ville'],['sArrete','arrete'],['sMaitre','maitre'],['sHeure','heure'],['sTol','tol'],['sJour','jour'],['sAvant','avant'],['sDaily','daily'],['aWa','wa'],['aMail','mail'],['aCc','cc'],['aCfg','cfgUrl']];
 SMAP.forEach(([id,k])=>$('#'+id).addEventListener('input',e=>{S[k]=e.target.value;saveS();renderHead();refresh();if(['heure','jour','avant','daily'].includes(k)&&store.get('notifOn',false))scheduleNotifs(false)}));
-function renderSettings(){SMAP.forEach(([id,k])=>$('#'+id).value=S[k]??'');$('#roParoisse').textContent=S.paroisse||'—';$('#roVille').textContent=S.ville||'—';$('#roDest').textContent=[dest().wa,dest().mail].filter(Boolean).join(' · ')||'non défini (voir l\'administrateur)';cfgState();$('#sNotif').checked=!!store.get('notifOn',false)&&!!LN;notifMsg();
- $('#progEdit').innerHTML=S.programme.map((p,i)=>`<div class="field"><label style="font-size:.95rem">${i+1}. ${esc(short(p.label))}</label>${p.texte?'<span class="note" style="margin:0">texte</span>':`<div class="stepper" data-prog="${p.id}">${stepperHTML('pg_'+p.id,p.prevu)}</div>`}</div>`).join('');
+function renderSettings(){SMAP.forEach(([id,k])=>$('#'+id).value=S[k]??'');$('#roParoisse').textContent=S.paroisse||'—';$('#roVille').textContent=S.ville||'—';$('#roDest').textContent=[dest().wa,dest().mail].filter(Boolean).join(' · ')||tx("non défini (voir l'administrateur)");cfgState();$('#sNotif').checked=!!store.get('notifOn',false)&&!!LN;notifMsg();
+ $('#progEdit').innerHTML=S.programme.map((p,i)=>`<div class="field"><label style="font-size:.95rem">${i+1}. ${esc(short(p.label))}</label>${p.texte?'<span class="note" style="margin:0">'+tx('texte')+'</span>':`<div class="stepper" data-prog="${p.id}">${stepperHTML('pg_'+p.id,p.prevu)}</div>`}</div>`).join('');
  $$('[data-prog]').forEach(box=>bindStepper(box,v=>{const p=S.programme.find(x=>x.id===box.dataset.prog);p.prevu=v===''?null:Number(v);saveS();renderRubriques();refresh()}));
 }
-$('#btnExport').onclick=()=>{$('#backup').value=JSON.stringify({v:2,settings:S,normes:NORMES,fav:FAV,hist:HIST});$('#backup').select();toast('Sauvegarde générée : copiez le texte')};
-$('#btnImport').onclick=()=>{try{const d=JSON.parse($('#backup').value);if(!d.settings)throw 0;S=Object.assign({},DEF_SETTINGS,d.settings);NORMES=d.normes||NORMES;FAV=d.fav||[];HIST=d.hist||[];saveS();store.set('normes',NORMES);store.set('fav',FAV);store.set('hist',HIST);renderHead();renderSettings();bindReport();toast('Données restaurées')}catch(e){toast('Texte invalide : collez une sauvegarde générée par l\'application')}};
+$('#btnExport').onclick=()=>{$('#backup').value=JSON.stringify({v:2,settings:S,normes:NORMES,fav:FAV,hist:HIST});$('#backup').select();toast(tx('Sauvegarde générée : copiez le texte'))};
+$('#btnImport').onclick=()=>{try{const d=JSON.parse($('#backup').value);if(!d.settings)throw 0;S=Object.assign({},DEF_SETTINGS,d.settings);NORMES=d.normes||NORMES;FAV=d.fav||[];HIST=d.hist||[];saveS();store.set('normes',NORMES);store.set('fav',FAV);store.set('hist',HIST);renderHead();renderSettings();bindReport();toast(tx('Données restaurées'))}catch(e){toast(tx("Texte invalide : collez une sauvegarde générée par l'application"))}};
 
 /* ---------- Logo KCC : lettres dorées dans un cercle doré, fond blanc (Art. 4) ---------- */
 let logoN=0;
@@ -778,17 +802,17 @@ function adminHash(){return store.get('adminHash',ADMIN_HASH_DEFAULT)}
 let adminOpen=false;
 function pwSheet(title,sub,fields,onOk){
  openSheet(title,`<p class="note" style="margin:0 0 4px">${esc(sub)}</p>${fields.map((f,i)=>`<label class="lbl" for="pw${i}">${esc(f)}</label><input class="input" id="pw${i}" type="password" autocomplete="off" autocapitalize="off" spellcheck="false">`).join('')}
- <label class="checks" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.9rem"><input type="checkbox" id="pwShow" style="width:auto"> Afficher</label>
- <p class="note" id="pwErr" style="color:var(--bad);min-height:1.2em"></p><div class="btns"><button class="btn" id="pwOk">Valider</button></div>`,()=>{
+ <label class="checks" style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:.9rem"><input type="checkbox" id="pwShow" style="width:auto"> ${tx('Afficher')}</label>
+ <p class="note" id="pwErr" style="color:var(--bad);min-height:1.2em"></p><div class="btns"><button class="btn" id="pwOk">${tx('Valider')}</button></div>`,()=>{
   const ins=fields.map((f,i)=>$('#pw'+i));ins[0].focus();
   $('#pwShow').onchange=e=>ins.forEach(x=>x.type=e.target.checked?'text':'password');
   const go=async()=>{const err=await onOk(ins.map(x=>x.value));if(err){$('#pwErr').textContent=err;try{navigator.vibrate&&navigator.vibrate([80,60,80])}catch(e){}}};
   $('#pwOk').onclick=go;ins.forEach(x=>x.onkeydown=e=>{if(e.key==='Enter')go()});
  })}
-function setAdmin(open){adminOpen=open;$('#adminBox').hidden=!open;$('#adminSub').textContent=open?'Ouvert · modifiez puis touchez « Fermer »':'WhatsApp, e-mail, paroisse, programme';if(open)renderSettings()}
-$('#btnAdmin').onclick=()=>{if(adminOpen){setAdmin(false);return}pwSheet('Espace administrateur','Réservé à l\'administrateur.',['Mot de passe administrateur'],async([pw])=>{if(await hashPw(pw.trim())!==adminHash())return 'Mot de passe incorrect';closeSheet();setAdmin(true);toast('Espace administrateur ouvert')})};
-$('#btnLock').onclick=()=>{setAdmin(false);window.scrollTo(0,0);toast('Espace administrateur fermé')};
-$('#btnPin').onclick=()=>pwSheet('Changer le mot de passe','Au moins 8 caractères.',['Nouveau mot de passe','Confirmer le mot de passe'],async([a,b])=>{a=a.trim();if(a.length<8)return 'Au moins 8 caractères';if(a!==b.trim())return 'Les deux mots de passe sont différents';store.set('adminHash',await hashPw(a));closeSheet();toast('Mot de passe administrateur changé')});
+function setAdmin(open){adminOpen=open;$('#adminBox').hidden=!open;$('#adminSub').textContent=open?tx('Ouvert · modifiez puis touchez « Fermer »'):tx('WhatsApp, e-mail, paroisse, programme');if(open)renderSettings()}
+$('#btnAdmin').onclick=()=>{if(adminOpen){setAdmin(false);return}pwSheet(tx('Espace administrateur'),tx("Réservé à l'administrateur."),[tx('Mot de passe administrateur')],async([pw])=>{if(await hashPw(pw.trim())!==adminHash())return tx('Mot de passe incorrect');closeSheet();setAdmin(true);toast(tx('Espace administrateur ouvert'))})};
+$('#btnLock').onclick=()=>{setAdmin(false);window.scrollTo(0,0);toast(tx('Espace administrateur fermé'))};
+$('#btnPin').onclick=()=>pwSheet(tx('Changer le mot de passe'),tx('Au moins 8 caractères.'),[tx('Nouveau mot de passe'),tx('Confirmer le mot de passe')],async([a,b])=>{a=a.trim();if(a.length<8)return tx('Au moins 8 caractères');if(a!==b.trim())return tx('Les deux mots de passe sont différents');store.set('adminHash',await hashPw(a));closeSheet();toast(tx('Mot de passe administrateur changé'))});
 
 /* ---------- Activation par téléphone ----------
    Chaque téléphone a un identifiant tiré au hasard à la première ouverture.
@@ -812,20 +836,20 @@ async function telState(nom){const e=findPar(nom);if(!e)return {st:'non'};if(e.a
  const fin=e.essai&&e.essai[h];if(!fin)return {st:'ok'};
  const t=Date.parse(fin);if(!isNaN(t)&&Date.now()>=t)return {st:'expire',fin:t};return {st:'essai',fin:t}}
 async function approved(nom){const x=await telState(nom);return x.st==='ok'||x.st==='essai'}
-const MSG_ETAT={expire:"La période d'essai de ce téléphone est terminée. Contactez l'administration pour continuer.",suspendue:"L'accès de cette paroisse a été suspendu par l'administration.",non:"Ce téléphone n'est plus approuvé pour cette paroisse."};
-function essaiToast(x){if(x&&x.st==='essai'&&!isNaN(x.fin)){const d=new Date(x.fin);toast("Version d'essai jusqu'au "+d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),4200)}}
+const MSG_ETAT={expire:tx("La période d'essai de ce téléphone est terminée. Contactez l'administration pour continuer."),suspendue:tx("L'accès de cette paroisse a été suspendu par l'administration."),non:tx("Ce téléphone n'est plus approuvé pour cette paroisse.")};
+function essaiToast(x){if(x&&x.st==='essai'&&!isNaN(x.fin)){const d=new Date(x.fin);toast(tx("Version d'essai jusqu'au {0} à {1}",d.toLocaleDateString(LOC),d.toLocaleTimeString(LOC,{hour:'2-digit',minute:'2-digit'})),4200)}}
 
 function showAccess(mode,msg){
  $('#accLogo').innerHTML=logoSVG();
  const D=store.get('demande',null);
  if(mode==='wait'&&D){
   $('#acChoose').hidden=true;$('#acWait').hidden=false;
-  $('#acWaitTxt').textContent=`Demande pour « ${D.par} ». Envoyez-la à l'administration ; ce téléphone se déverrouillera tout seul dès qu'elle sera approuvée.`;
+  $('#acWaitTxt').textContent=tx("Demande pour « {0} ». Envoyez-la à l'administration ; ce téléphone se déverrouillera tout seul dès qu'elle sera approuvée.",D.par);
   $('#acDev').textContent=devId();$('#acMsg').textContent=msg||'';$('#acMsg').style.color=msg?'var(--bad)':'';
  }else{
   $('#acWait').hidden=true;$('#acChoose').hidden=false;
   const L=parList().filter(p=>p.actif!==false);
-  $('#acSel').innerHTML='<option value="">— Choisissez votre paroisse —</option>'+L.map(p=>`<option value="${esc(p.nom)}">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}</option>`).join('')+'<option value="__autre">Autre paroisse…</option>';
+  $('#acSel').innerHTML='<option value="">'+tx('— Choisissez votre paroisse —')+'</option>'+L.map(p=>`<option value="${esc(p.nom)}">${esc(p.nom)}${p.ville?' — '+esc(p.ville):''}</option>`).join('')+'<option value="__autre">'+tx('Autre paroisse…')+'</option>';
   if(D){$('#acSel').value=findPar(D.par)?findPar(D.par).nom:'__autre';$('#acAutre').value=findPar(D.par)?'':D.par;$('#acVille').value=D.ville||'';$('#acMaitre').value=D.maitre||''}
   else{$('#acMaitre').value=S.maitre||''}
   $('#acAutreBox').hidden=$('#acSel').value!=='__autre';
@@ -836,40 +860,40 @@ function showAccess(mode,msg){
 $('#acSel').onchange=()=>{$('#acAutreBox').hidden=$('#acSel').value!=='__autre';const e=findPar($('#acSel').value);if(e&&e.ville)$('#acVille').value=e.ville};
 $('#acAsk').onclick=()=>{
  const v=$('#acSel').value;const par=v==='__autre'?$('#acAutre').value.trim():v;
- if(!v){$('#acErr').textContent='Choisissez votre paroisse.';return}
- if(par.length<3){$('#acErr').textContent='Indiquez le nom de la paroisse.';$('#acAutre').focus();return}
- const maitre=$('#acMaitre').value.trim();if(maitre.length<2){$('#acErr').textContent='Indiquez votre nom.';$('#acMaitre').focus();return}
+ if(!v){$('#acErr').textContent=tx('Choisissez votre paroisse.');return}
+ if(par.length<3){$('#acErr').textContent=tx('Indiquez le nom de la paroisse.');$('#acAutre').focus();return}
+ const maitre=$('#acMaitre').value.trim();if(maitre.length<2){$('#acErr').textContent=tx('Indiquez votre nom.');$('#acMaitre').focus();return}
  store.set('demande',{par:par,ville:$('#acVille').value.trim(),maitre:maitre,at:Date.now()});
  showAccess('wait');sendRequest();
 };
 function requestText(){const D=store.get('demande',{})||{};
- return `Demande d'activation · Maître du Culte\nParoisse : ${D.par||''}\nVille : ${D.ville||''}\nMaître du culte : ${D.maitre||''}\nTéléphone : ${devId()}`}
+ return `Demande d'activation · Maître du Culte\nParoisse : ${D.par||''}\nVille : ${D.ville||''}\nMaître du culte : ${D.maitre||''}\nTéléphone : ${devId()}\nLangue : ${LANGS[LANG]}`}
 async function sendRequest(){
  const txt=requestText();const wa=(central().demandes||dest().wa||'').replace(/\D/g,'');
  if(wa){location.href=`https://wa.me/${wa}?text=${encodeURIComponent(txt)}`;return}
  try{if(navigator.share){await navigator.share({text:txt});return}}catch(e){}
- try{await navigator.clipboard.writeText(txt);toast('Demande copiée : envoyez-la à l\'administration')}catch(e){toast('Envoyez à l\'administration l\'identifiant affiché')}
+ try{await navigator.clipboard.writeText(txt);toast(tx("Demande copiée : envoyez-la à l'administration"))}catch(e){toast(tx("Envoyez à l'administration l'identifiant affiché"))}
 }
 $('#acSendWa').onclick=sendRequest;
 $('#acChange').onclick=()=>showAccess('choose');
 $('#acCheck').onclick=async()=>{
- const b=$('#acCheck');b.disabled=true;b.textContent='Vérification…';
+ const b=$('#acCheck');b.disabled=true;b.textContent=tx('Vérification…');
  const ok=await loadCentral(false);
- b.disabled=false;b.textContent="Vérifier l'activation";
+ b.disabled=false;b.textContent=tx("Vérifier l'activation");
  const D=store.get('demande',null);if(!D)return;
  const x=await telState(D.par);if(x.st==='ok'||x.st==='essai'){unlock(D);essaiToast(x);return}
  if(x.st==='expire'){$('#acMsg').style.color='var(--bad)';$('#acMsg').textContent=MSG_ETAT.expire;return}
- $('#acMsg').style.color='';$('#acMsg').textContent=ok?'Pas encore approuvé. Réessayez après la confirmation de l\'administration.':'Pas de connexion Internet. Réessayez plus tard.';
+ $('#acMsg').style.color='';$('#acMsg').textContent=ok?tx("Pas encore approuvé. Réessayez après la confirmation de l'administration."):tx('Pas de connexion Internet. Réessayez plus tard.');
 };
-$('#acAdmin').onclick=()=>pwSheet('Activation par l\'administrateur','Réservé à l\'administrateur.',['Mot de passe administrateur'],async([pw])=>{
- if(await hashPw(pw.trim())!==adminHash())return 'Mot de passe incorrect';
+$('#acAdmin').onclick=()=>pwSheet(tx("Activation par l'administrateur"),tx("Réservé à l'administrateur."),[tx('Mot de passe administrateur')],async([pw])=>{
+ if(await hashPw(pw.trim())!==adminHash())return tx('Mot de passe incorrect');
  const D=store.get('demande',null);closeSheet();unlock(D,true)});
 function unlock(D,admin){
  const e=findPar(D.par)||{};
  S.paroisse=e.nom||D.par;S.ville=e.ville||D.ville||S.ville;S.maitre=D.maitre||S.maitre;saveS();
  R.faitA=R.faitA||S.ville;R.maitre=R.maitre||S.maitre;saveDraft();
  store.set('acces',{par:S.paroisse,admin:!!admin,at:Date.now()});store.set('demande',null);
- $('#access').hidden=true;buzz();showSetup();toast('Téléphone activé pour '+S.paroisse,3200);
+ $('#access').hidden=true;buzz();showSetup();toast(tx('Téléphone activé pour {0}',S.paroisse),3200);
 }
 
 /* ---------- Administration : paroisses et téléphones ---------- */
@@ -908,12 +932,12 @@ $('#btnPars').onclick=parsSheet;
 
 /* ---------- Rapport PDF ---------- */
 const GOLD=[184,134,11],NAVY=[28,74,138],INK=[20,28,44],GREY=[102,112,133];
-function dateLongue(s){if(!s)return '';const [y,m,d]=s.split('-').map(Number);const dt=new Date(y,m-1,d);const j=JOURS[dt.getDay()];const mois=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];return `${j[0].toUpperCase()+j.slice(1)} ${d} ${mois[m-1]} ${y}`}
+function dateLongue(s){if(!s)return '';const [y,m,d]=s.split('-').map(Number);return cap(new Date(y,m-1,d).toLocaleDateString(LOC,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}
 function dateCourte(s){if(!s)return '…';const [y,m,d]=s.split('-');return `${d}/${m}/${y}`}
 function pdfLogo(doc,cx,cy,r){doc.setDrawColor(...GOLD);doc.setFillColor(255,255,255);doc.setLineWidth(r*0.09);doc.circle(cx,cy,r,'FD');doc.setLineWidth(r*0.025);doc.circle(cx,cy,r*0.84,'S');
  doc.setTextColor(...GOLD);doc.setFont('times','bold');doc.setFontSize(r*1.8);doc.text('KCC',cx,cy+r*0.22,{align:'center'})}
 function makePDF(rep){
- const J=window.jspdf;if(!J||!J.jsPDF)throw new Error("Le module PDF n'est pas chargé.");
+ const J=window.jspdf;if(!J||!J.jsPDF)throw new Error(tx("Le module PDF n'est pas chargé."));
  const doc=new J.jsPDF({unit:'mm',format:'a4'});const W=210,M=14;
  const tol=Number(S.tol)||0;
  // En-tête
@@ -922,102 +946,102 @@ function makePDF(rep){
  doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(`${S.paroisse} — ${S.ville}`.toUpperCase(),M+30,25);
  doc.setFontSize(8);doc.setTextColor(...GREY);doc.text(S.arrete,M+30,30.5,{maxWidth:W-M*2-30});
  doc.setDrawColor(...GOLD);doc.setLineWidth(.8);doc.line(M,40,W-M,40);doc.setLineWidth(.2);doc.line(M,41.3,W-M,41.3);
- doc.setTextColor(...INK);doc.setFont('helvetica','bold');doc.setFontSize(17);doc.text('RAPPORT DU CULTE',W/2,52,{align:'center',charSpace:1});
+ doc.setTextColor(...INK);doc.setFont('helvetica','bold');doc.setFontSize(17);doc.text(tx('RAPPORT DU CULTE'),W/2,52,{align:'center',charSpace:1});
  doc.setFont('helvetica','normal');doc.setFontSize(10.5);doc.setTextColor(...GREY);doc.text(dateLongue(rep.date),W/2,58,{align:'center'});
  // Bandeau infos
  const tp=S.programme.reduce((a,p)=>a+(p.texte?0:Number(p.prevu)||0),0);
  const tr=S.programme.reduce((a,p)=>a+(p.texte?0:Number((rep.rows[p.id]||{}).reel)||0),0);
  const effT=(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0);
  doc.autoTable({startY:63,theme:'grid',margin:{left:M,right:M},
-  head:[['Date','Heure de début','Heure de fin','Durée réelle','Durée prévue','Effectif']],
+  head:[['Date','Heure de début','Heure de fin','Durée réelle','Durée prévue','Effectif'].map(x=>tx(x))],
   body:[[dateCourte(rep.date),rep.debut||'—',rep.fin||'—',tr?fmtM(tr):'—',fmtM(tp),String(effT)]],
   styles:{halign:'center',fontSize:9.5,cellPadding:2.2,lineColor:[220,224,232],textColor:INK},headStyles:{fillColor:[247,241,226],textColor:[120,85,10],fontStyle:'bold',fontSize:8}});
  // Déroulement
  const body=[];S.programme.forEach((p,i)=>{const r=rep.rows[p.id]||{};
-  if(p.texte){body.push([{content:String(i+1),styles:{halign:'center'}},{content:p.label.toUpperCase(),styles:{fontStyle:'bold'}},{content:r.texte||'—',colSpan:5,styles:{fontStyle:'italic'}}]);return}
+  if(p.texte){body.push([{content:String(i+1),styles:{halign:'center'}},{content:tx(p.label).toUpperCase(),styles:{fontStyle:'bold'}},{content:r.texte||'—',colSpan:5,styles:{fontStyle:'italic'}}]);return}
   const e=(r.reel!==''&&r.reel!=null&&p.prevu!=null)?Number(r.reel)-p.prevu:null;
-  body.push([String(i+1),short(p.label).toUpperCase(),(r.qui||'')+(r.absent?' (remplacé)':''),r.reel?r.reel+' min':'—',p.prevu==null?'—':p.prevu+' min',e==null?'—':(e>0?'+':'')+e,r.obs||''])});
+  body.push([String(i+1),short(p.label).toUpperCase(),(r.qui||'')+(r.absent?' ('+tx('remplacé')+')':''),r.reel?r.reel+' min':'—',p.prevu==null?'—':p.prevu+' min',e==null?'—':(e>0?'+':'')+e,r.obs||''])});
  body.push([{content:'',styles:{}},{content:'TOTAL',styles:{fontStyle:'bold'}},'',{content:tr?tr+' min':'—',styles:{fontStyle:'bold'}},{content:tp+' min',styles:{fontStyle:'bold'}},{content:tr?((tr-tp>0?'+':'')+(tr-tp)):'—',styles:{fontStyle:'bold'}},'']);
- doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('DÉROULEMENT DU CULTE',M,doc.lastAutoTable.finalY+9);
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text(tx('DÉROULEMENT DU CULTE'),M,doc.lastAutoTable.finalY+9);
  doc.autoTable({startY:doc.lastAutoTable.finalY+11,theme:'striped',margin:{left:M,right:M},
-  head:[['N°','Rubrique','Intervenant','Réel','Prévu','Écart','Observation']],body,
+  head:[['N°','Rubrique','Intervenant','Réel','Prévu','Écart','Observation'].map(x=>tx(x))],body,
   styles:{fontSize:8.4,cellPadding:1.5,textColor:INK,valign:'middle'},headStyles:{fillColor:NAVY,textColor:255,fontStyle:'bold'},alternateRowStyles:{fillColor:[245,247,251]},
   columnStyles:{0:{cellWidth:9,halign:'center'},1:{cellWidth:52},2:{cellWidth:32},3:{cellWidth:15,halign:'center'},4:{cellWidth:15,halign:'center'},5:{cellWidth:13,halign:'center',fontStyle:'bold'},6:{cellWidth:'auto'}},
   didParseCell:d=>{if(d.section==='body'&&d.column.index===5){const v=parseInt(d.cell.raw,10);if(!isNaN(v))d.cell.styles.textColor=Math.abs(v)<=tol?[27,122,72]:(v>tol*3?[192,38,28]:[163,95,0])}}});
  // Vérifications + effectif
  let y=doc.lastAutoTable.finalY+9;if(y+42>282){doc.addPage();y=20}
- const chk=CHECKS.map(c=>[c.q,{content:(rep.checks||{})[c.id]==='oui'?'Oui':(rep.checks||{})[c.id]==='non'?'Non':'—',styles:{halign:'center',fontStyle:'bold',textColor:(rep.checks||{})[c.id]==='non'?[192,38,28]:(rep.checks||{})[c.id]==='oui'?[27,122,72]:GREY}},`Art. ${c.art}${c.pt?' '+c.pt+')':''}`]);
- doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('VÉRIFICATIONS',M,y);doc.text('EFFECTIF',W-M-58,y);
+ const chk=CHECKS.map(c=>[tx(c.q),{content:(rep.checks||{})[c.id]==='oui'?tx('Oui'):(rep.checks||{})[c.id]==='non'?tx('Non'):'—',styles:{halign:'center',fontStyle:'bold',textColor:(rep.checks||{})[c.id]==='non'?[192,38,28]:(rep.checks||{})[c.id]==='oui'?[27,122,72]:GREY}},`Art. ${c.art}${c.pt?' '+c.pt+')':''}`]);
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text(tx('VÉRIFICATIONS'),M,y);doc.text(tx('EFFECTIF'),W-M-58,y);
  doc.autoTable({startY:y+2,theme:'grid',margin:{left:M,right:M+64},body:chk,styles:{fontSize:8.4,cellPadding:1.6,lineColor:[220,224,232],textColor:INK},columnStyles:{1:{cellWidth:14},2:{cellWidth:20,textColor:GREY}}});
  const yChk=doc.lastAutoTable.finalY;
- doc.autoTable({startY:y+2,theme:'grid',margin:{left:W-M-58,right:M},body:[['Hommes',rep.eff.h||'0'],['Femmes',rep.eff.f||'0'],['Enfants',rep.eff.e||'0'],[{content:'Total',styles:{fontStyle:'bold'}},{content:String(effT),styles:{fontStyle:'bold'}}]],styles:{fontSize:9,cellPadding:1.8,lineColor:[220,224,232],textColor:INK},columnStyles:{1:{halign:'center',cellWidth:20}}});
+ doc.autoTable({startY:y+2,theme:'grid',margin:{left:W-M-58,right:M},body:[[tx('Hommes'),rep.eff.h||'0'],[tx('Femmes'),rep.eff.f||'0'],[tx('Enfants'),rep.eff.e||'0'],[{content:tx('Total'),styles:{fontStyle:'bold'}},{content:String(effT),styles:{fontStyle:'bold'}}]],styles:{fontSize:9,cellPadding:1.8,lineColor:[220,224,232],textColor:INK},columnStyles:{1:{halign:'center',cellWidth:20}}});
  y=Math.max(yChk,doc.lastAutoTable.finalY)+9;
  // Anomalies
  const an=reportAnomalies(rep);
  if(y>250){doc.addPage();y=20}
- doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('ANOMALIES ET RAPPEL DU RÈGLEMENT INTÉRIEUR',M,y);
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text(tx('ANOMALIES ET RAPPEL DU RÈGLEMENT INTÉRIEUR'),M,y);
  doc.autoTable({startY:y+2,theme:'grid',margin:{left:M,right:M},
-  head:[['Anomalie constatée','Norme concernée']],
-  body:an.length?an.map(a=>[a.msg,refsFor(a).filter(r=>r.kind==='art').map(r=>r.kind==='art'?`Art. ${r.n}${r.pt?' '+r.pt+')':''} : ${r.pt?alinea(r.n,r.pt).replace(/^[a-j]\)\s*/,''):alinea(r.n,r.pt).split('\n')[0]}`:`${r.r.code} : ${r.r.texte}`).join('\n')]):[[{content:'Aucune anomalie constatée.',colSpan:2,styles:{halign:'center',textColor:[27,122,72]}}]],
+  head:[[tx('Anomalie constatée'),tx('Norme concernée')]],
+  body:an.length?an.map(a=>[a.msg,refsFor(a).filter(r=>r.kind==='art').map(r=>r.kind==='art'?`Art. ${r.n}${r.pt?' '+r.pt+')':''} : ${r.pt?alinea(r.n,r.pt).replace(/^[a-j]\)\s*/,''):alinea(r.n,r.pt).split('\n')[0]}`:`${tx(r.r.code)} : ${tx(r.r.texte)}`).join('\n')]):[[{content:tx('Aucune anomalie constatée.'),colSpan:2,styles:{halign:'center',textColor:[27,122,72]}}]],
   styles:{fontSize:8.4,cellPadding:2,lineColor:[220,224,232],textColor:INK,valign:'top'},headStyles:{fillColor:[253,240,216],textColor:[163,95,0]},columnStyles:{0:{cellWidth:62,fontStyle:'bold'}}});
  y=doc.lastAutoTable.finalY+9;
  // Synthèse
  const syn=doc.splitTextToSize(rep.synthese||'—',W-M*2-8);const hSyn=Math.max(18,syn.length*4.4+8);
  if(y+hSyn+40>285){doc.addPage();y=20}
- doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text('SYNTHÈSE',M,y);
+ doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text(tx('SYNTHÈSE'),M,y);
  doc.setDrawColor(...GOLD);doc.setLineWidth(.3);doc.roundedRect(M,y+2,W-M*2,hSyn,2,2,'S');
  doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(...INK);doc.text(syn,M+4,y+8);
  y=y+2+hSyn+12;if(y>255){doc.addPage();y=24}
  // Signature
- doc.setFontSize(10);doc.text(`Fait à ${rep.faitA||S.ville}, le ${dateCourte(rep.date)}`,W-M,y,{align:'right'});
- doc.setFont('helvetica','bold');doc.text('Le Maître du Culte',W-M-30,y+9,{align:'center'});
+ doc.setFontSize(10);doc.text(tx('Fait à {0}, le {1}',rep.faitA||S.ville,dateCourte(rep.date)),W-M,y,{align:'right'});
+ doc.setFont('helvetica','bold');doc.text(tx('Le Maître du Culte'),W-M-30,y+9,{align:'center'});
  doc.setDrawColor(...GREY);doc.setLineWidth(.2);doc.line(W-M-62,y+26,W-M,y+26);
  doc.setFont('helvetica','normal');doc.text(rep.maitre||S.maitre||'',W-M-30,y+31,{align:'center'});
  // Pied de page
  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setDrawColor(...GOLD);doc.setLineWidth(.3);doc.line(M,287,W-M,287);doc.setFontSize(7.5);doc.setTextColor(...GREY);doc.setFont('helvetica','normal');
-  doc.text(`EBNM · ${S.paroisse} · Rapport du culte du ${dateCourte(rep.date)} · Tél. ${devId()}`,M,291.5);doc.text(`Page ${i} / ${n}`,W-M,291.5,{align:'right'})}
+  doc.text(`EBNM · ${S.paroisse} · `+tx('Rapport du culte du {0}',dateCourte(rep.date))+` · ${tx('Tél.')} ${devId()}`,M,291.5);doc.text(tx('Page {0} / {1}',i,n),W-M,291.5,{align:'right'})}
  return doc;
 }
 function reportAnomalies(rep){const keep=R;R=rep;try{return anomalies()}finally{R=keep}}
-function pdfName(rep){return `Rapport_culte_${(S.paroisse||'paroisse').replace(/[^A-Za-z0-9]+/g,'_')}_${rep.date||''}.pdf`}
+function pdfName(rep){return `${tx('Rapport_culte')}_${(S.paroisse||'paroisse').replace(/[^A-Za-z0-9]+/g,'_')}_${rep.date||''}.pdf`}
 
 /* ---------- Envoi ---------- */
 const waNum=()=>(dest().wa||'').replace(/[^0-9]/g,'');
 function resume(rep){const an=reportAnomalies(rep);const effT=(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0);
- return `Rapport du culte du ${dateCourte(rep.date)} – ${S.paroisse}\nDébut ${rep.debut||'—'}, fin ${rep.fin||'—'}. Effectif : ${effT}.\nAnomalies : ${an.length?an.map(a=>a.msg).join(' ; '):'aucune'}.\nLe Maître du Culte : ${rep.maitre||S.maitre||''}`}
+ return [tx('Rapport du culte du {0}',dateCourte(rep.date))+' – '+S.paroisse,tx('Début {0}, fin {1}. Effectif : {2}.',rep.debut||'—',rep.fin||'—',effT),tx('Anomalies : {0}.',an.length?an.map(a=>a.msg).join(' ; '):tx('aucune')),tx('Le Maître du Culte : {0}',rep.maitre||S.maitre||'')].join('\n')}
 async function sharePDF(rep,how){
  const doc=makePDF(rep);const name=pdfName(rep);
  const P=NATIVE&&window.Capacitor.Plugins;
  if(P&&P.Filesystem&&P.Share){
   const b64=doc.output('datauristring').split(',')[1];
   const w=await P.Filesystem.writeFile({path:name,data:b64,directory:'CACHE'});
-  await P.Share.share({title:`Rapport du culte – ${S.paroisse} – ${dateCourte(rep.date)}`,text:resume(rep),files:[w.uri],dialogTitle:how==='wa'?`Choisissez WhatsApp${dest().wa?' puis '+dest().wa:''}`:how==='mail'?`Choisissez votre messagerie${dest().mail?' ('+dest().mail+')':''}`:'Partager le rapport PDF'});
+  await P.Share.share({title:tx('Rapport du culte – {0} – {1}',S.paroisse,dateCourte(rep.date)),text:resume(rep),files:[w.uri],dialogTitle:how==='wa'?tx('Choisissez WhatsApp')+(dest().wa?tx(' puis {0}',dest().wa):''):how==='mail'?tx('Choisissez votre messagerie')+(dest().mail?' ('+dest().mail+')':''):tx('Partager le rapport PDF')});
   return true}
  try{const f=new File([doc.output('blob')],name,{type:'application/pdf'});if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:name,text:resume(rep)});return true}}catch(e){}
  return false;
 }
 function docPreview(rep){const an=reportAnomalies(rep);const tr=S.programme.reduce((a,p)=>a+(p.texte?0:Number((rep.rows[p.id]||{}).reel)||0),0);const effT=(Number(rep.eff.h)||0)+(Number(rep.eff.f)||0)+(Number(rep.eff.e)||0);
- return `<div class="hd">${logoSVG()}<div><b>${esc(S.eglise)}</b><span>${esc(S.paroisse)} — ${esc(S.ville)}</span></div></div><h3>RAPPORT DU CULTE</h3><div class="dt">${esc(dateLongue(rep.date))}</div>
- <div class="kv"><div>Horaire<b>${esc(rep.debut||'—')}–${esc(rep.fin||'—')}</b></div><div>Durée<b>${tr?esc(fmtM(tr)):'—'}</b></div><div>Effectif<b>${effT}</b></div></div>
- <div class="an">${an.length?`${an.length} anomalie(s) avec rappel du règlement`:'<span style="color:#1b7a48">Aucune anomalie</span>'}</div>`}
+ return `<div class="hd">${logoSVG()}<div><b>${esc(S.eglise)}</b><span>${esc(S.paroisse)} — ${esc(S.ville)}</span></div></div><h3>${tx('RAPPORT DU CULTE')}</h3><div class="dt">${esc(dateLongue(rep.date))}</div>
+ <div class="kv"><div>${tx('Horaire')}<b>${esc(rep.debut||'—')}–${esc(rep.fin||'—')}</b></div><div>${tx('Durée')}<b>${tr?esc(fmtM(tr)):'—'}</b></div><div>${tx('Effectif')}<b>${effT}</b></div></div>
+ <div class="an">${an.length?tx('{0} anomalie(s) avec rappel du règlement',an.length):'<span style="color:#1b7a48">'+tx('Aucune anomalie')+'</span>'}</div>`}
 function openSend(rep){
  let doc;try{doc=makePDF(rep)}catch(e){toast(e.message);return}
- const D=dest();const wa=waNum();const mailto=D.mail?`mailto:${encodeURIComponent(D.mail)}?${D.cc?'cc='+encodeURIComponent(D.cc)+'&':''}subject=${encodeURIComponent('Rapport du culte – '+S.paroisse+' – '+dateCourte(rep.date))}&body=${encodeURIComponent(resume(rep)+'\n\n(Rapport PDF en pièce jointe)')}`:'';
- openSheet('Envoyer le rapport',`
+ const D=dest();const wa=waNum();const mailto=D.mail?`mailto:${encodeURIComponent(D.mail)}?${D.cc?'cc='+encodeURIComponent(D.cc)+'&':''}subject=${encodeURIComponent(tx('Rapport du culte – {0} – {1}',S.paroisse,dateCourte(rep.date)))}&body=${encodeURIComponent(resume(rep)+'\n\n'+tx('(Rapport PDF en pièce jointe)'))}`:'';
+ openSheet(tx('Envoyer le rapport'),`
   <div class="docprev">${docPreview(rep)}</div>
-  <p class="note">📄 ${esc(pdfName(rep))} · ${doc.getNumberOfPages()} page(s) A4</p>
+  <p class="note">📄 ${esc(pdfName(rep))} · ${tx('{0} page(s) A4',doc.getNumberOfPages())}</p>
   <div class="btns">
-   <button class="btn" id="sdWa" style="background:#1fa855;color:#fff">Envoyer sur WhatsApp${D.wa?`<span class="dest">· ${esc(D.wa)}</span>`:''}</button>
-   <button class="btn sec" id="sdMail">Envoyer par e-mail${D.mail?`<span class="dest">· ${esc(D.mail)}</span>`:''}</button>
-   <button class="btn sec" id="sdShare">Partager le PDF…</button>
-   <button class="btn sec" id="sdTxt">Copier le texte du rapport</button>
+   <button class="btn" id="sdWa" style="background:#1fa855;color:#fff">${tx('Envoyer sur WhatsApp')}${D.wa?`<span class="dest">· ${esc(D.wa)}</span>`:''}</button>
+   <button class="btn sec" id="sdMail">${tx('Envoyer par e-mail')}${D.mail?`<span class="dest">· ${esc(D.mail)}</span>`:''}</button>
+   <button class="btn sec" id="sdShare">${tx('Partager le PDF…')}</button>
+   <button class="btn sec" id="sdTxt">${tx('Copier le texte du rapport')}</button>
   </div>
-  <p class="note" id="sdNote">${!D.wa&&!D.mail?"Aucun destinataire n'est enregistré. Un administrateur peut les ajouter dans Réglages › Espace administrateur.":''}</p>`,()=>{
-  const fallback=()=>$('#sdNote').innerHTML=NATIVE?"Le partage n'a pas pu s'ouvrir.":"Dans le navigateur, le PDF s'affiche ci-dessus. L'envoi direct du fichier PDF se fait depuis l'application installée sur le téléphone.";
-  $('#sdWa').onclick=async()=>{if(!D.wa&&!NATIVE){toast('Aucun numéro WhatsApp enregistré');return}
+  <p class="note" id="sdNote">${!D.wa&&!D.mail?tx("Aucun destinataire n'est enregistré. Un administrateur peut les ajouter dans Réglages › Espace administrateur."):''}</p>`,()=>{
+  const fallback=()=>$('#sdNote').innerHTML=NATIVE?tx("Le partage n'a pas pu s'ouvrir."):tx("Dans le navigateur, le PDF s'affiche ci-dessus. L'envoi direct du fichier PDF se fait depuis l'application installée sur le téléphone.");
+  $('#sdWa').onclick=async()=>{if(!D.wa&&!NATIVE){toast(tx('Aucun numéro WhatsApp enregistré'));return}
    const ok=await sharePDF(rep,'wa').catch(()=>false);
    if(!ok){fallback();if(wa)location.href=`https://wa.me/${wa}?text=${encodeURIComponent(resume(rep))}`}};
-  $('#sdMail').onclick=async()=>{const ok=await sharePDF(rep,'mail').catch(()=>false);if(!ok){fallback();if(mailto)location.href=mailto;else toast('Aucune adresse e-mail enregistrée')}};
+  $('#sdMail').onclick=async()=>{const ok=await sharePDF(rep,'mail').catch(()=>false);if(!ok){fallback();if(mailto)location.href=mailto;else toast(tx('Aucune adresse e-mail enregistrée'))}};
   $('#sdShare').onclick=async()=>{const ok=await sharePDF(rep,'share').catch(()=>false);if(!ok)fallback()};
   $('#sdTxt').onclick=()=>copyText(reportText(rep));
  });
@@ -1030,17 +1054,17 @@ function dest(){const c=store.get('central',null)||{};const e=(Array.isArray(c.p
  const wa=e.whatsapp||c.wa||'',mail=e.email||c.mail||'';
  return {wa:wa||S.wa||'',mail:mail||S.mail||'',cc:e.cc||c.cc||S.cc||'',central:!!(wa||mail)}}
 function cfgState(){const c=store.get('central',null);const el=$('#cfgState');if(!el)return;
- if(!S.cfgUrl){el.textContent="Sans configuration centrale, le numéro et l'e-mail ci-dessus valent pour ce téléphone seulement.";return}
- el.textContent=c&&c.at?`Configuration centrale lue le ${new Date(c.at).toLocaleString('fr-FR')}. Elle remplace les valeurs de ce téléphone pour toutes les paroisses.`:"Configuration centrale pas encore lue (connexion Internet nécessaire)."}
+ if(!S.cfgUrl){el.textContent=tx("Sans configuration centrale, le numéro et l'e-mail ci-dessus valent pour ce téléphone seulement.");return}
+ el.textContent=c&&c.at?tx('Configuration centrale lue le {0}. Elle remplace les valeurs de ce téléphone pour toutes les paroisses.',new Date(c.at).toLocaleString(LOC)):tx('Configuration centrale pas encore lue (connexion Internet nécessaire).')}
 async function loadCentral(manual){
  loadCentral.ok=false;
- if(!S.cfgUrl){if(manual)toast("Ajoutez d'abord l'adresse de la configuration centrale");return}
+ if(!S.cfgUrl){if(manual)toast(tx("Ajoutez d'abord l'adresse de la configuration centrale"));return}
  try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
   const r=await fetch(S.cfgUrl+(S.cfgUrl.includes('?')?'&':'?')+'t='+Date.now(),{cache:'no-store',signal:ctl.signal});clearTimeout(t);
   if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
   const c={wa:j.whatsapp||j.wa||'',mail:j.email||j.mail||'',cc:j.cc||'',demandes:j.demandes||'',activation:!!j.activation,paroisses:Array.isArray(j.paroisses)?j.paroisses:[],at:Date.now()};store.set('central',c);loadCentral.ok=true;
-  if(manual)toast('Destinataires mis à jour : '+[c.wa,c.mail].filter(Boolean).join(' · '));
- }catch(e){if(manual)toast("Configuration centrale injoignable. Les derniers destinataires connus restent utilisés.")}
+  if(manual)toast(tx('Destinataires mis à jour : ')+[c.wa,c.mail].filter(Boolean).join(' · '));
+ }catch(e){if(manual)toast(tx('Configuration centrale injoignable. Les derniers destinataires connus restent utilisés.'))}
  if(curTab==='reglages')renderSettings();
  return loadCentral.ok;
 }
@@ -1051,12 +1075,12 @@ function needSetup(){return !S.paroisse}
 function needSetup2(){return !S.maitre}
 function showSetup(){$('#setupLogo').innerHTML=logoSVG();$('#suJour').value=S.jour;$('#suHeure').value=S.heure;$('#suMaitre').value=S.maitre||'';
  const a=acces();const inp=$('#suParoisse');
- if(a){inp.value=S.paroisse;inp.readOnly=true;$('#suVille').value=S.ville||'';$('#setupLead').textContent='Ce téléphone est activé. Vérifiez votre nom et l\'horaire du culte.'}
+ if(a){inp.value=S.paroisse;inp.readOnly=true;$('#suVille').value=S.ville||'';$('#setupLead').textContent=tx("Ce téléphone est activé. Vérifiez votre nom et l'horaire du culte.")}
  $('#setup').hidden=false}
-$('#suGo').onclick=()=>{const par=$('#suParoisse').value.trim();if(par.length<3){$('#suErr').textContent='Indiquez le nom de votre paroisse.';$('#suParoisse').focus();return}
+$('#suGo').onclick=()=>{const par=$('#suParoisse').value.trim();if(par.length<3){$('#suErr').textContent=tx('Indiquez le nom de votre paroisse.');$('#suParoisse').focus();return}
  S.paroisse=par;S.ville=$('#suVille').value.trim();S.maitre=$('#suMaitre').value.trim();S.jour=$('#suJour').value;S.heure=$('#suHeure').value||'09:00';saveS();
  R.faitA=R.faitA||S.ville;R.maitre=R.maitre||S.maitre;saveDraft();
- $('#setup').hidden=true;renderHead();bindReport();showTab('accueil');toast('Bienvenue, '+S.paroisse)};
+ $('#setup').hidden=true;renderHead();bindReport();showTab('accueil');toast(tx('Bienvenue, {0}',S.paroisse))};
 /* Contrôle d'accès : quand config.json porte « activation: true », seul un téléphone
    approuvé pour sa paroisse peut ouvrir l'application. Sinon, premier lancement classique. */
 (async()=>{

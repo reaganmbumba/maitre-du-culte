@@ -6,7 +6,13 @@ import sys, os, shutil
 here=os.path.dirname(os.path.abspath(__file__))
 src=open(os.path.join(here,'app.src.html')).read()
 reg=open(os.path.join(here,'reglement.json')).read()
-app=src.replace('/*__REGLEMENT__*/[]',reg)
+def opt(f,d):
+    f=os.path.join(here,'i18n',f)
+    return open(f).read() if os.path.exists(f) else d
+app=(src.replace('/*__REGLEMENT__*/[]',reg)
+        .replace('/*__REGLEMENT_PT__*/[]',opt('reglement.pt.json','[]'))
+        .replace('/*__REGLEMENT_EN__*/[]',opt('reglement.en.json','[]'))
+        .replace('/*__I18N__*/{}',opt('ui.json','{}')))
 CDN=('<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>\n'
      '<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>')
 LOCAL=('<script src="lib/jspdf.umd.min.js"></script>\n<script src="lib/jspdf.plugin.autotable.min.js"></script>')
@@ -15,7 +21,7 @@ if len(sys.argv)>1:
     www=sys.argv[1]; os.makedirs(os.path.join(www,'lib'),exist_ok=True)
     for f in ('jspdf.umd.min.js','jspdf.plugin.autotable.min.js'):
         shutil.copy(os.path.join(here,'lib',f),os.path.join(www,'lib',f))
-    head=('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'
+    head=('<!doctype html>\n<html>\n<head>\n<meta charset="utf-8">\n'
           '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">\n'
           '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>\n')
     nat=app.replace('<!--__PDFLIBS__-->',LOCAL)
