@@ -10,6 +10,14 @@
       "ville": "",
       "actif": true,
       "tel": []
+    },
+    {
+      "nom": "Lukala",
+      "ville": "Lukala",
+      "actif": true,
+      "tel": [
+        "aa297185a99d19804ce06a54"
+      ]
     }
   ]
 }
