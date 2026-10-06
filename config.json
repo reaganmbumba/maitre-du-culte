@@ -54,6 +54,17 @@
       "essai": {
         "6738869fe787a98924fcf1d5": "2026-10-08T08:12:52Z"
       }
+    },
+    {
+      "nom": "Paroisse de KCC",
+      "ville": "Kinshasa",
+      "actif": true,
+      "tel": [
+        "27d9fd57f843d474adb470af"
+      ],
+      "essai": {
+        "27d9fd57f843d474adb470af": "2026-10-08T08:22:44Z"
+      }
     }
   ]
 }
