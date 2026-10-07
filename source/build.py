@@ -23,9 +23,17 @@ if len(sys.argv)>1:
         shutil.copy(os.path.join(here,'lib',f),os.path.join(www,'lib',f))
     head=('<!doctype html>\n<html>\n<head>\n<meta charset="utf-8">\n'
           '<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">\n'
+          '<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="mobile-web-app-capable" content="yes">\n'
+          '<meta name="apple-mobile-web-app-status-bar-style" content="default">\n<meta name="apple-mobile-web-app-title" content="Maître du Culte">\n'
+          '<meta name="theme-color" content="#1c4a8c">\n<link rel="apple-touch-icon" href="icon.png">\n<link rel="icon" href="icon.png">\n<link rel="manifest" href="manifest.webmanifest">\n'
           '<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>\n')
     nat=app.replace('<!--__PDFLIBS__-->',LOCAL)
     te=nat.index('</title>')+8
     body_start=nat.index('<div class="splash"')
     out=head+nat[:te]+nat[te:body_start]+'</head>\n<body>\n'+nat[body_start:]+'\n</body>\n</html>\n'
     open(os.path.join(www,'index.html'),'w').write(out)
+    shutil.copy(os.path.join(here,'assets','icon-only.png'),os.path.join(www,'icon.png'))
+    import json
+    json.dump({'name':'Maître du Culte','short_name':'Maître du Culte','start_url':'./','display':'standalone',
+               'background_color':'#ffffff','theme_color':'#1c4a8c','icons':[{'src':'icon.png','sizes':'1024x1024','type':'image/png'}]},
+              open(os.path.join(www,'manifest.webmanifest'),'w'),ensure_ascii=False)

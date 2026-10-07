@@ -825,7 +825,8 @@ function devId(){let d=store.get('devid',null);
 async function telHash(id){const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('mdc-tel:'+String(id).trim().toUpperCase()));return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,24)}
 function central(){return store.get('central',null)||{}}
 function parList(){const c=central();return Array.isArray(c.paroisses)?c.paroisses:[]}
-function gateOn(){return !!central().activation}
+/* Jamais lue (premier lancement hors ligne) : on bloque par prudence, pour qu'un téléphone non approuvé ne puisse pas s'ouvrir sans Internet. */
+function gateOn(){const c=store.get('central',null);return c===null||!!c.activation}
 function acces(){return store.get('acces',null)}
 const sameName=(a,b)=>String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();
 function findPar(nom){return parList().find(p=>sameName(p.nom,nom))}
