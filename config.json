@@ -84,6 +84,17 @@
       "essai": {
         "6140ce383d449f6f72fa849e": "2026-10-10T15:36:48Z"
       }
+    },
+    {
+      "nom": "Lukula",
+      "ville": "Lukula",
+      "actif": true,
+      "tel": [
+        "9c9fbfc3c16a8aa10b92285a"
+      ],
+      "essai": {
+        "9c9fbfc3c16a8aa10b92285a": "2026-10-10T15:38:04Z"
+      }
     }
   ]
 }
