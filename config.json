@@ -119,6 +119,17 @@
       "essai": {
         "6c1ad5204e939d2f382729dd": "2026-10-10T18:53:49Z"
       }
+    },
+    {
+      "nom": "Paroisse de Mbanza kongo",
+      "ville": "Mbanza Kongo",
+      "actif": true,
+      "tel": [
+        "fe01d6f932396b44211f100d"
+      ],
+      "essai": {
+        "fe01d6f932396b44211f100d": "2026-10-10T20:44:47Z"
+      }
     }
   ]
 }
