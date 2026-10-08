@@ -73,6 +73,17 @@
       "essai": {
         "2d853018b0910398830ac463": "2026-10-10T15:22:50Z"
       }
+    },
+    {
+      "nom": "Paroisse de n’djili",
+      "ville": "Kinshasa",
+      "actif": true,
+      "tel": [
+        "6140ce383d449f6f72fa849e"
+      ],
+      "essai": {
+        "6140ce383d449f6f72fa849e": "2026-10-10T15:36:48Z"
+      }
     }
   ]
 }
