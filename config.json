@@ -95,6 +95,17 @@
       "essai": {
         "9c9fbfc3c16a8aa10b92285a": "2026-10-10T15:38:04Z"
       }
+    },
+    {
+      "nom": "Mapela",
+      "ville": "Kinshasa",
+      "actif": true,
+      "tel": [
+        "885cdd2b7cabd21ee94ddf04"
+      ],
+      "essai": {
+        "885cdd2b7cabd21ee94ddf04": "2026-10-10T16:23:50Z"
+      }
     }
   ]
 }
