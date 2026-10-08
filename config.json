@@ -130,6 +130,17 @@
       "essai": {
         "fe01d6f932396b44211f100d": "2026-10-10T20:44:47Z"
       }
+    },
+    {
+      "nom": "Secção autónoma 1°de março de 1930",
+      "ville": "Luanda",
+      "actif": true,
+      "tel": [
+        "d73e8b3dbcd1680fd683b045"
+      ],
+      "essai": {
+        "d73e8b3dbcd1680fd683b045": "2026-10-10T21:11:35Z"
+      }
     }
   ]
 }
