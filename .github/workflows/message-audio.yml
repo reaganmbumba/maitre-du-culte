@@ -19,14 +19,17 @@ jobs:
           python-version: '3.12'
       - run: pip install edge-tts
       - name: Lire le texte avec la voix Gerard
-        run: edge-tts --voice fr-BE-GerardNeural --rate=-5% -f audio/texte-message-audio.txt --write-media message-maitre-du-culte.mp3
+        run: |
+          edge-tts --voice fr-BE-GerardNeural --rate=-5% -f audio/texte-message-audio.txt --write-media message-maitre-du-culte.mp3
+          edge-tts --voice en-GB-RyanNeural --rate=-5% -f audio/message-english.txt --write-media message-worship-leader-english.mp3
+          edge-tts --voice pt-PT-DuarteNeural --rate=-5% -f audio/message-portugues.txt --write-media message-mestre-do-culto-portugues.mp3
       - uses: actions/upload-artifact@v4
         with:
           name: message-maitre-du-culte-mp3
-          path: message-maitre-du-culte.mp3
+          path: '*.mp3'
       - name: Publier le MP3 (lien de téléchargement)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release view message-audio >/dev/null 2>&1 || gh release create message-audio --target "$GITHUB_SHA" --title "Message audio Maître du Culte" --notes "Présentation de l'application, voix Gerard." --prerelease
-          gh release upload message-audio message-maitre-du-culte.mp3 --clobber
+          gh release upload message-audio *.mp3 --clobber
