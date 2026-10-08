@@ -1,0 +1,32 @@
+name: Générer le message audio
+
+on:
+  push:
+    branches: [claude/project-thread-i7e9k3]
+    paths: ['audio/**', '.github/workflows/message-audio.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mp3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install edge-tts
+      - name: Lire le texte avec la voix Gerard
+        run: edge-tts --voice fr-BE-GerardNeural --rate=-5% -f audio/texte-message-audio.txt --write-media message-maitre-du-culte.mp3
+      - uses: actions/upload-artifact@v4
+        with:
+          name: message-maitre-du-culte-mp3
+          path: message-maitre-du-culte.mp3
+      - name: Publier le MP3 (lien de téléchargement)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view message-audio >/dev/null 2>&1 || gh release create message-audio --target "$GITHUB_SHA" --title "Message audio Maître du Culte" --notes "Présentation de l'application, voix Gerard." --prerelease
+          gh release upload message-audio message-maitre-du-culte.mp3 --clobber
