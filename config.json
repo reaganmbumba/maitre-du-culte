@@ -141,6 +141,17 @@
       "essai": {
         "d73e8b3dbcd1680fd683b045": "2026-10-10T21:11:35Z"
       }
+    },
+    {
+      "nom": "Paroisse de SAPÚ",
+      "ville": "Luanda",
+      "actif": true,
+      "tel": [
+        "e722e39cad011003ab7d4118"
+      ],
+      "essai": {
+        "e722e39cad011003ab7d4118": "2026-10-11T06:29:46Z"
+      }
     }
   ]
 }
