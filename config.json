@@ -163,6 +163,17 @@
       "essai": {
         "e24cb86ff375b6bab1e81fa4": "2026-10-11T11:19:04Z"
       }
+    },
+    {
+      "nom": "Camp luka",
+      "ville": "Kinshasa",
+      "actif": true,
+      "tel": [
+        "118d7ed5e2d7eaa51a156bd7"
+      ],
+      "essai": {
+        "118d7ed5e2d7eaa51a156bd7": "2026-10-11T17:35:39Z"
+      }
     }
   ]
 }
