@@ -152,6 +152,17 @@
       "essai": {
         "e722e39cad011003ab7d4118": "2026-10-11T06:29:46Z"
       }
+    },
+    {
+      "nom": "Camp Teli",
+      "ville": "Boma",
+      "actif": true,
+      "tel": [
+        "e24cb86ff375b6bab1e81fa4"
+      ],
+      "essai": {
+        "e24cb86ff375b6bab1e81fa4": "2026-10-11T11:19:04Z"
+      }
     }
   ]
 }
