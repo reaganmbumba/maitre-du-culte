@@ -12,6 +12,8 @@ permissions:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    env:
+      KS_B64: ${{ secrets.PLAY_KEYSTORE_BASE64 }}
     defaults:
       run:
         working-directory: android
@@ -43,3 +45,15 @@ jobs:
           gh release create apk maitre-du-culte.apk --target "$GITHUB_SHA" --latest \
             --title "Maître du Culte · Android" \
             --notes "Application Android du maître du culte. Téléchargez maitre-du-culte.apk et installez-le sur le téléphone."
+      - name: Construire l'AAB signé pour le Play Store
+        if: github.ref == 'refs/heads/main' && env.KS_B64 != ''
+        env:
+          MDC_KEYSTORE_PASSWORD: ${{ secrets.PLAY_KEYSTORE_PASSWORD }}
+          MDC_VERSION_CODE: ${{ github.run_number }}
+          GH_TOKEN: ${{ github.token }}
+        working-directory: android/android
+        run: |
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          MDC_KEYSTORE="$RUNNER_TEMP/upload.jks" ./gradlew bundleRelease
+          cp app/build/outputs/bundle/release/app-release.aab ../maitre-du-culte.aab
+          cd .. && gh release upload apk maitre-du-culte.aab --clobber

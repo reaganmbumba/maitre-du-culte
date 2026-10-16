@@ -7,8 +7,9 @@ android {
         applicationId "org.ebnm.maitreduculte"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Le Play Store exige un numéro de version qui augmente à chaque envoi : GitHub Actions le fournit.
+        versionCode (System.getenv("MDC_VERSION_CODE") ?: "1").toInteger()
+        versionName "1.0." + (System.getenv("MDC_VERSION_CODE") ?: "0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +17,20 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Clé d'envoi Play Store : fournie par les secrets GitHub (jamais dans le dépôt).
+    signingConfigs {
+        release {
+            if (System.getenv("MDC_KEYSTORE")) {
+                storeFile file(System.getenv("MDC_KEYSTORE"))
+                storePassword System.getenv("MDC_KEYSTORE_PASSWORD")
+                keyAlias "upload"
+                keyPassword System.getenv("MDC_KEYSTORE_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv("MDC_KEYSTORE")) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

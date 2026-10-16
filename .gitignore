@@ -10,3 +10,4 @@ android/android/app/build/
 android/android/.gradle/
 android/android/build/
 ios/ios/App/build/
+*.jks
