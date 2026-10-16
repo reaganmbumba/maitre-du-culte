@@ -8,7 +8,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         // Le Play Store exige un numéro de version qui augmente à chaque envoi : GitHub Actions le fournit.
-        versionCode (System.getenv("MDC_VERSION_CODE") ?: "1").toInteger()
+        versionCode Integer.parseInt(System.getenv("MDC_VERSION_CODE") ?: "1")
         versionName "1.0." + (System.getenv("MDC_VERSION_CODE") ?: "0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
