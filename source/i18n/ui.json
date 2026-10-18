@@ -364,7 +364,8 @@
   "Rubrique": "Rubrica",
   "Réel": "Real",
   "Prévu": "Previsto",
-  "Écart": "Desvio"
+  "Écart": "Desvio",
+  "{0} (calculée)": "{0} (calculada)"
  },
  "en": {
   "Chapitre {0}": "Chapter {0}",
@@ -723,6 +724,7 @@
   "Rubrique": "Item",
   "Réel": "Actual",
   "Prévu": "Planned",
-  "Écart": "Gap"
+  "Écart": "Gap",
+  "{0} (calculée)": "{0} (calculated)"
  }
 }
